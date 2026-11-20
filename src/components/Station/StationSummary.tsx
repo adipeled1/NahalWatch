@@ -1,12 +1,10 @@
 'use client';
 import Link from 'next/link';
-import { Baby, CalendarClock, ChevronLeft, MapPin, Navigation, Star, X } from 'lucide-react';
+import { CalendarClock, ChevronLeft, MapPin, Navigation, X } from 'lucide-react';
 import { forecastFcoli } from '@/lib/models';
 import { STALE_DAYS, ageLabel, exceedances, fmt } from '@/lib/quality';
 import { nearestSafe, type RatedStation } from '@/lib/stations';
-import { useFavorites } from '@/lib/storage';
 import { FindingList, StatusBadge, statusTone } from '@/components/ui/Status';
-import { ScoreBar } from './ScoreBar';
 import { ForecastStrip } from './ForecastStrip';
 
 const dateFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -24,8 +22,6 @@ export default function StationSummary({
   onPick?: (id: string) => void;
 }) {
   const { station, assessment: a, ageDays } = rated;
-  const { isFavorite, toggle } = useFavorites();
-  const fav = isFavorite(station.id);
   const tone = statusTone(a.status);
   const issues = exceedances(a);
   const fcoli = a.findings.find((f) => f.key === 'Fcoli' || f.key === 'Ecoli');
@@ -43,15 +39,6 @@ export default function StationSummary({
           <h2 className="mt-0.5 text-lg font-extrabold leading-tight">{station.name}</h2>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => toggle(station.id)}
-            aria-pressed={fav}
-            aria-label={fav ? 'הסרה מהנחלים שלי' : 'הוספה לנחלים שלי'}
-            className="grid size-9 place-items-center rounded-full hover:bg-surface-hover"
-          >
-            <Star className={`size-5 ${fav ? 'fill-caution text-caution' : 'text-muted'}`} />
-          </button>
           {onClose && (
             <button type="button" onClick={onClose} aria-label="סגירה" className="grid size-9 place-items-center rounded-full hover:bg-surface-hover">
               <X className="size-5 text-muted" />
@@ -67,22 +54,15 @@ export default function StationSummary({
           {a.headline}
         </div>
         <p className="mt-1 text-sm text-fg">{a.familyAnswer}</p>
-        {a.kidFriendly && (
-          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-bold text-safe">
-            <Baby className="size-3.5" aria-hidden /> מתאים לילדים
-          </span>
-        )}
       </div>
 
       {issues.length > 0 ? (
         <FindingList findings={issues} />
       ) : fcoli ? (
         <p className="text-sm text-muted">
-          {fcoli.label}: <bdi dir="ltr" className="num font-bold text-safe">{fcoli.valueText}</bdi> — {fcoli.verdict}
+          {fcoli.label}: <bdi dir="ltr" className="num font-bold whitespace-nowrap text-safe">{fcoli.valueText}</bdi> — {fcoli.verdict}
         </p>
       ) : null}
-
-      <ScoreBar score={a.score} />
 
       <div className={`flex items-center gap-2 text-xs ${ageDays > STALE_DAYS ? 'text-caution' : 'text-muted'}`}>
         <CalendarClock className="size-4 shrink-0" aria-hidden />

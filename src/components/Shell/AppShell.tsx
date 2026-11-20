@@ -112,10 +112,7 @@ function Brand({ compact }: { compact?: boolean }) {
   return (
     <Link href="/" className={`flex items-center gap-2.5 ${compact ? '' : 'px-5 pt-5 pb-3'}`}>
       <Image src="/icons/icon-192.png" alt="" width={compact ? 34 : 40} height={compact ? 34 : 40} className="rounded-xl" priority />
-      <div className="leading-tight">
-        <div className={`font-extrabold tracking-tight ${compact ? 'text-base' : 'text-lg'}`}>NahalWatch</div>
-        <div className="text-[11px] font-medium text-muted">אקולוגיה בכף היד · מים נקיים, טבע בריא</div>
-      </div>
+      <div className={`font-extrabold leading-tight tracking-tight ${compact ? 'text-lg' : 'text-xl'}`}>NahalWatch</div>
     </Link>
   );
 }

@@ -110,7 +110,7 @@ export function logisticSeries(n0: number, r: number, k: number, days: number) {
  */
 export function backtestSeasonal(samples: Sample[]) {
   const withF = samples.filter((s) => s.v.Fcoli != null);
-  const cls = (v: number) => (v > 1000 ? 2 : v > 200 ? 1 : 0);
+  const cls = (v: number) => (v > 400 ? 2 : v > 200 ? 1 : 0);
   const pairs: { date: string; measured: number; predicted: number }[] = [];
   for (const s of withF) {
     const month = s.d.slice(5, 7);

@@ -1,6 +1,6 @@
 /**
  * On-device state. NahalWatch has no accounts (it's a public, news-style site),
- * so favorites and theme live in localStorage only — nothing is
+ * so the only saved state is the theme, in localStorage — nothing is
  * sent anywhere (privacy NFR). Every access is guarded: storage can be blocked.
  */
 import { useCallback, useSyncExternalStore } from 'react';
@@ -27,17 +27,6 @@ function useStoredJson<T>(key: string, fallback: T): [T, (v: T) => void] {
   if (raw) { try { value = JSON.parse(raw) as T; } catch { /* corrupt → fallback */ } }
   const set = useCallback((v: T) => write(key, JSON.stringify(v)), [key]);
   return [value, set];
-}
-
-// ── Favorites ──────────────────────────────────────────────────────────────
-const EMPTY: string[] = [];
-export function useFavorites() {
-  const [ids, setIds] = useStoredJson<string[]>('nw-favorites', EMPTY);
-  const toggle = useCallback(
-    (id: string) => setIds(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]),
-    [ids, setIds],
-  );
-  return { favorites: ids, isFavorite: (id: string) => ids.includes(id), toggle };
 }
 
 // ── Theme ──────────────────────────────────────────────────────────────────

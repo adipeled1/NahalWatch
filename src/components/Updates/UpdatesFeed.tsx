@@ -1,11 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { BellRing, ChevronLeft, LineChart, Sunrise } from 'lucide-react';
+import { ChevronLeft, LineChart } from 'lucide-react';
 import { REGION_LABEL } from '@/lib/data';
-import { ageLabel, exceedances, fmt, type Status } from '@/lib/quality';
-import { countByStatus, nearestSafe, rateAll, type RatedStation } from '@/lib/stations';
-import { useFavorites } from '@/lib/storage';
+import { ageLabel, exceedances, type Status } from '@/lib/quality';
+import { countByStatus, rateAll, type RatedStation } from '@/lib/stations';
 import type { Region } from '@/lib/types';
 import { Card, Chip, PageHeader } from '@/components/ui/Card';
 import { FindingList, statusTone } from '@/components/ui/Status';
@@ -17,13 +16,10 @@ const TITLE: Record<Status, string> = {
   unknown: 'דגימה חדשה',
 };
 
-
 export default function UpdatesFeed() {
   const rated = useMemo(() => rateAll(), []);
-  const { favorites } = useFavorites();
-  const [filter, setFilter] = useState<'all' | 'alerts' | 'mine'>('all');
+  const [onlyAlerts, setOnlyAlerts] = useState(false);
   const [region, setRegion] = useState<Region | 'all'>('north');
-  const [notif, setNotif] = useState<string | null>(null);
 
   const recent = rated.filter((r) => !r.old);
   const regional = recent.filter((r) => region === 'all' || r.station.region === region);
@@ -32,35 +28,17 @@ export default function UpdatesFeed() {
   const pctSafe = measured ? Math.round((counts.safe / measured) * 100) : 0;
 
   const feed = regional
-    .filter((r) => (filter === 'alerts' ? r.assessment.status === 'danger' || r.assessment.status === 'caution' : true))
-    .filter((r) => (filter === 'mine' ? favorites.includes(r.station.id) : true))
+    .filter((r) => !onlyAlerts || r.assessment.status === 'danger' || r.assessment.status === 'caution')
     .sort((a, b) => b.station.latest.d.localeCompare(a.station.latest.d))
     .slice(0, 40);
-
-  const myAlerts = rated.filter((r) => favorites.includes(r.station.id) && (r.assessment.status === 'danger' || r.assessment.status === 'caution'));
-  const morning = myAlerts[0];
-  const morningAlt = morning ? nearestSafe(morning.station, rated) : null;
-
-  const enableNotifications = async () => {
-    if (!('Notification' in window)) { setNotif('הדפדפן לא תומך בהתראות. ב-iPhone יש להוסיף קודם את האפליקציה למסך הבית.'); return; }
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { setNotif('ההתראות לא אושרו. אפשר לשנות זאת בהגדרות הדפדפן.'); return; }
-    const body = myAlerts.length
-      ? `${myAlerts.length} מהנחלים שלך במצב חשוד או אזהרה. ${myAlerts[0].station.stream}: ${myAlerts[0].assessment.headline}`
-      : favorites.length ? 'כל הנחלים שלך במצב תקין.' : 'סמנו נחלים בכוכב כדי לקבל עליהם התראות.';
-    const reg = await navigator.serviceWorker?.getRegistration();
-    if (reg) await reg.showNotification('NahalWatch', { body, icon: '/icons/icon-192.png', lang: 'he', dir: 'rtl' });
-    else new Notification('NahalWatch', { body, icon: '/icons/icon-192.png', lang: 'he', dir: 'rtl' });
-    setNotif('ההתראות פעילות במכשיר הזה.');
-  };
 
   return (
     <div>
       <PageHeader title="התראות ועדכונים" subtitle="הדגימות האחרונות מכל תחנות הניטור, כמו מהדורת חדשות של הנחלים." />
 
-      <div className="mb-4 grid gap-3 lg:grid-cols-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
         {/* Regional status ring */}
-        <Card className="flex items-center gap-4 p-4 lg:col-span-1">
+        <Card className="flex items-center gap-4 p-4">
           <Ring pct={pctSafe} />
           <div className="min-w-0">
             <div className="text-sm font-bold">מצב כללי · {REGION_LABEL[region]}</div>
@@ -75,59 +53,28 @@ export default function UpdatesFeed() {
           </div>
         </Card>
 
-        {/* Morning alert (persona: Michal) */}
-        <Card className="p-4 lg:col-span-2">
-          <div className="flex items-start gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-water-soft text-water"><Sunrise className="size-5" /></span>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold">התראת בוקר לנחלים שלי</div>
-              {morning ? (
-                <p className="mt-1 text-sm">
-                  <b className={statusTone(morning.assessment.status).text}>{morning.station.stream} ({morning.station.name}): {morning.assessment.headline}.</b>{' '}
-                  {morningAlt
-                    ? <>נחל חלופי מסומן בירוק, {fmt(Math.round(morningAlt.km))} ק״מ בקו אוויר: <Link className="font-semibold text-water underline" href={`/station/${morningAlt.r.station.id}`}>{morningAlt.r.station.stream} · {morningAlt.r.station.name}</Link></>
-                    : 'לא נמצאה חלופה תקינה קרובה.'}
-                </p>
-              ) : (
-                <p className="mt-1 text-sm text-muted">
-                  {favorites.length ? 'כל הנחלים שסימנתם במצב תקין. טיול מהנה!' : 'סמנו נחלים בכוכב ⭐ כדי לקבל כאן עדכון בבוקר הטיול.'}
-                </p>
-              )}
-              <button type="button" onClick={enableNotifications} className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-surface-hover">
-                <BellRing className="size-4 text-water" /> הפעלת התראות במכשיר
-              </button>
-              {notif && <p className="mt-1.5 text-xs text-muted">{notif}</p>}
-            </div>
-          </div>
-        </Card>
+        <Link href="/models" className="block">
+          <Card className="h-full p-4 transition-colors hover:bg-surface-hover">
+            <div className="flex items-center gap-2 text-sm font-bold"><LineChart className="size-4 text-water" /> תחזית אקולוגית</div>
+            <p className="mt-1 text-xs text-muted">מודל לוטקה–וולטרה ומודל גידול לוגיסטי: איך אוכלוסיית החיידקים בנחל צפויה להשתנות בימים הקרובים.</p>
+            <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-water">למעבדת המודלים <ChevronLeft className="size-3.5" /></span>
+          </Card>
+        </Link>
       </div>
 
       <div className="scrollbar-none -mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
-        <Chip active={filter === 'all'} onClick={() => setFilter('all')}>הכל</Chip>
-        <Chip active={filter === 'alerts'} onClick={() => setFilter('alerts')}>אזהרות בלבד</Chip>
-        <Chip active={filter === 'mine'} onClick={() => setFilter('mine')}>הנחלים שלי</Chip>
+        <Chip active={!onlyAlerts} onClick={() => setOnlyAlerts(false)}>הכל</Chip>
+        <Chip active={onlyAlerts} onClick={() => setOnlyAlerts(true)}>אזהרות בלבד</Chip>
         <span className="mx-1 w-px shrink-0 bg-border" aria-hidden />
         {(['north', 'center', 'south', 'all'] as const).map((r) => (
           <Chip key={r} active={region === r} onClick={() => setRegion(r)}>{REGION_LABEL[r]}</Chip>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_300px]">
-        <ol className="flex flex-col gap-3">
-          {feed.length === 0 && <li className="py-10 text-center text-muted">אין עדכונים להצגה.</li>}
-          {feed.map((r) => <FeedItem key={r.station.id} r={r} />)}
-        </ol>
-
-        <aside className="flex flex-col gap-3">
-          <Link href="/models" className="block">
-            <Card className="p-4 transition-colors hover:bg-surface-hover">
-              <div className="flex items-center gap-2 text-sm font-bold"><LineChart className="size-4 text-water" /> תחזית אקולוגית</div>
-              <p className="mt-1 text-xs text-muted">מודל לוטקה–וולטרה ומודל גידול לוגיסטי: איך אוכלוסיית החיידקים בנחל צפויה להשתנות בימים הקרובים.</p>
-              <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-water">למעבדת המודלים <ChevronLeft className="size-3.5" /></span>
-            </Card>
-          </Link>
-        </aside>
-      </div>
+      <ol className="flex flex-col gap-3">
+        {feed.length === 0 && <li className="py-10 text-center text-muted">אין עדכונים להצגה.</li>}
+        {feed.map((r) => <FeedItem key={r.station.id} r={r} />)}
+      </ol>
     </div>
   );
 }

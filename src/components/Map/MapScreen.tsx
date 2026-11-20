@@ -1,12 +1,12 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
-import { Crosshair, History, Home, Layers, Search, Star, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Crosshair, History, Home, Layers, Search, X } from 'lucide-react';
 import { HOME_VIEW, REGION_BOUNDS, REGION_LABEL, distanceKm } from '@/lib/data';
 import type { Status } from '@/lib/quality';
 import { STATUS_LABEL } from '@/lib/quality';
 import { countByStatus, rateAll } from '@/lib/stations';
-import { useFavorites } from '@/lib/storage';
 import type { Region } from '@/lib/types';
 import { Chip } from '@/components/ui/Card';
 import StationSummary from '@/components/Station/StationSummary';
@@ -22,15 +22,18 @@ const LEGEND_DOT: Record<Status, string> = { safe: 'bg-safe', caution: 'bg-cauti
 
 export default function MapScreen() {
   const rated = useMemo(() => rateAll(), []);
-  const { favorites } = useFavorites();
+  // Shareable deep link: /?station=<id> opens the map on that station's card.
+  const linkedId = useSearchParams().get('station');
+  const linked = rated.find((r) => r.station.id === linkedId) ?? null;
 
-  const [region, setRegion] = useState<Region | 'all'>('north');
+  const [region, setRegion] = useState<Region | 'all'>(linked?.station.region ?? 'north');
   const [statuses, setStatuses] = useState<Set<Status>>(new Set(STATUS_ORDER));
-  const [showOld, setShowOld] = useState(false);
-  const [onlyFav, setOnlyFav] = useState(false);
+  const [showOld, setShowOld] = useState(linked?.old ?? false);
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [flyTo, setFlyTo] = useState<FlyTarget | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(linked?.station.id ?? null);
+  const [flyTo, setFlyTo] = useState<FlyTarget | null>(
+    linked ? { kind: 'point', lat: linked.station.lat, lng: linked.station.lng, zoom: 12 } : null,
+  );
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [layer, setLayer] = useState<'street' | 'satellite'>('street');
@@ -39,9 +42,8 @@ export default function MapScreen() {
     () => rated.filter((r) =>
       (region === 'all' || r.station.region === region)
       && statuses.has(r.assessment.status)
-      && (showOld || !r.old)
-      && (!onlyFav || favorites.includes(r.station.id))),
-    [rated, region, statuses, showOld, onlyFav, favorites],
+      && (showOld || !r.old)),
+    [rated, region, statuses, showOld],
   );
   const counts = countByStatus(visible);
   const selected = rated.find((r) => r.station.id === selectedId) ?? null;
@@ -142,9 +144,6 @@ export default function MapScreen() {
           {(['north', 'center', 'south', 'all'] as const).map((r) => (
             <Chip key={r} active={region === r} onClick={() => chooseRegion(r)}>{REGION_LABEL[r]}</Chip>
           ))}
-          <Chip active={onlyFav} onClick={() => setOnlyFav(!onlyFav)} title="הנחלים שלי">
-            <Star className={`size-4 ${onlyFav ? 'fill-current' : ''}`} aria-hidden /> שלי
-          </Chip>
           <Chip active={showOld} onClick={() => setShowOld(!showOld)} title="תחנות שלא נדגמו מעל 3 שנים">
             <History className="size-4" aria-hidden /> ישנות
           </Chip>

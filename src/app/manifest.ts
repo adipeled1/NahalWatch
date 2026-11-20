@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'NahalWatch — אקולוגיה בכף היד',
+    name: 'NahalWatch',
     short_name: 'NahalWatch',
     description: 'האם אפשר להיכנס למים היום? מפת רמזור לאיכות המים בנחלי ישראל.',
     start_url: '/',

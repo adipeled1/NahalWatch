@@ -12,7 +12,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: { default: 'NahalWatch | אקולוגיה בכף היד', template: '%s · NahalWatch' },
+  title: { default: 'NahalWatch', template: '%s · NahalWatch' },
   description: 'מפת רמזור לאיכות המים בנחלי ישראל — האם אפשר להיכנס למים היום? מבוסס על 30 שנות נתוני ניטור ומודלים אקולוגיים.',
   applicationName: 'NahalWatch',
   appleWebApp: { capable: true, title: 'NahalWatch', statusBarStyle: 'default' },

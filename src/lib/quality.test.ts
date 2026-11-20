@@ -5,38 +5,57 @@ import { backtestSeasonal, forecastFcoli, logistic, lotkaVolterra } from './mode
 const sample = (v: Record<string, number>, q?: Record<string, '<' | '>'>) => ({ d: '2025-06-01', v, q });
 
 describe('assess', () => {
-  it('is red and names the bacteria + threshold when fecal coliforms exceed 1000', () => {
+  it('is red and names the bacteria + official threshold when fecal coliforms exceed 400', () => {
     const a = assess(sample({ Fcoli: 2400, BODt: 4 }));
     expect(a.status).toBe('danger');
     const [worst] = exceedances(a);
     expect(worst.key).toBe('Fcoli');
     expect(worst.message).toContain('קוליפורמים צואתיים');
     expect(worst.message).toContain('2,400');
-    expect(worst.message).toContain('מעל הסף של 1,000');
+    expect(worst.message).toContain('מעל הסף של 400');
+    expect(worst.message).toContain('משרד הבריאות');
   });
 
-  it('is green and kid friendly for clean water', () => {
+  it('is green only when every official limit is met', () => {
     const a = assess(sample({ Fcoli: 40, BODt: 2, NH4: 0.1 }));
     expect(a.status).toBe('safe');
-    expect(a.kidFriendly).toBe(true);
     expect(exceedances(a)).toHaveLength(0);
   });
 
-  it('chemistry alone can only raise to caution', () => {
-    expect(assess(sample({ Fcoli: 50, NH4: 12 })).status).toBe('caution');
+  it('turns amber and lists each parameter above its Inbar limit', () => {
+    const a = assess(sample({ Fcoli: 50, NH4: 2, Ptot: 1.5 }));
+    expect(a.status).toBe('caution');
+    const keys = exceedances(a).map((f) => f.key);
+    expect(keys).toEqual(expect.arrayContaining(['NH4', 'Ptot']));
+    expect(exceedances(a)[0].verdict).toContain('תקנות ענבר');
   });
 
-  it('is unknown without any bacteria measurement', () => {
-    expect(assess(sample({ BODt: 40 })).status).toBe('unknown');
+  it('turns red when a parameter is above its Inbar maximum value', () => {
+    const a = assess(sample({ Fcoli: 50, NH4: 12 }));
+    expect(a.status).toBe('danger');
+    expect(exceedances(a)[0].verdict).toContain('ערך מרבי');
+  });
+
+  it('is amber for fecal coliforms between 200 and 400', () => {
+    expect(assess(sample({ Fcoli: 300 })).status).toBe('caution');
+  });
+
+  it('ignores parameters with no official limit', () => {
+    expect(assess(sample({ Fcoli: 50, Ecoli: 5000, Temp: 30 })).status).toBe('safe');
+  });
+
+  it('is unknown without fecal coliforms unless something else exceeds', () => {
+    expect(assess(sample({ BODt: 5 })).status).toBe('unknown');
+    expect(assess(sample({ BODt: 12 })).status).toBe('caution');
   });
 
   it('does not count "<" values as exceedances', () => {
     expect(assess(sample({ Fcoli: 2000 }, { Fcoli: '<' })).status).toBe('safe');
   });
 
-  it('flags low dissolved oxygen', () => {
+  it('flags low dissolved oxygen as red', () => {
     const a = assess(sample({ Fcoli: 10, Do: 1.2 }));
-    expect(a.status).toBe('caution');
+    expect(a.status).toBe('danger');
     expect(exceedances(a)[0].message).toContain('מתחת למינימום');
   });
 });

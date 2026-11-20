@@ -1,76 +1,48 @@
 'use client';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { ArrowRight, Baby, CalendarClock, FlaskConical, LineChart as LineIcon, MapPin, Navigation, Star, TableProperties } from 'lucide-react';
+import { useMemo } from 'react';
+import { ArrowRight, CalendarClock, FlaskConical, Gauge, LineChart as LineIcon, MapPin, Navigation, TableProperties } from 'lucide-react';
 import { STATION_BY_ID, useSeries } from '@/lib/data';
 import { forecastFcoli } from '@/lib/models';
 import { GROUP_LABEL, PARAMS, paramInfo, type ParamGroup } from '@/lib/params';
-import { STALE_DAYS, ageInDays, ageLabel, assess, exceedances, fmt } from '@/lib/quality';
+import { STALE_DAYS, ageInDays, ageLabel, assess, exceedances, fmt, type Assessment } from '@/lib/quality';
 import { nearestSafe, rateAll } from '@/lib/stations';
-import { useFavorites } from '@/lib/storage';
-import { Card, CardHeader, Chip, Stat } from '@/components/ui/Card';
+import type { Station } from '@/lib/types';
+import { Card, CardHeader } from '@/components/ui/Card';
 import { FindingList, StatusBadge, statusTone } from '@/components/ui/Status';
-import { ScoreBar } from './ScoreBar';
 import { ForecastStrip } from './ForecastStrip';
 import { HistoryChart } from './HistoryChart';
 
 const dateFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
 
+/** Key parameters shown as tiles (when measured in the latest sample), in this order. */
+const TILE_KEYS = ['Fcoli', 'Ecoli', 'Fstrp', 'BODt', 'CODt', 'NH4', 'NO3', 'Ptot', 'TSS105', 'Do', 'Temp', 'pH', 'Ec', 'Cl'];
+
 export default function StationDetail({ id }: { id: string }) {
   const station = STATION_BY_ID[id];
   const a = useMemo(() => assess(station.latest), [station]);
   const { data: series, loading } = useSeries(id);
-  const { isFavorite, toggle } = useFavorites();
-  const [mode, setMode] = useState<'simple' | 'expert'>('simple');
   const tone = statusTone(a.status);
   const issues = exceedances(a);
   const age = ageInDays(station.latest.d);
   const forecast = forecastFcoli(station);
   const alt = useMemo(() => (a.status === 'safe' ? null : nearestSafe(station, rateAll())), [a.status, station]);
-  const fav = isFavorite(id);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <Link href="/streams" className="inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-fg">
-          <ArrowRight className="size-4" aria-hidden /> כל הנחלים
-        </Link>
-        <div className="flex rounded-full border border-border bg-surface p-0.5 text-sm font-semibold" role="tablist" aria-label="רמת פירוט">
-          {(['simple', 'expert'] as const).map((m) => (
-            <button
-              key={m}
-              role="tab"
-              aria-selected={mode === m}
-              onClick={() => setMode(m)}
-              className={`rounded-full px-3.5 py-1.5 ${mode === m ? 'bg-accent text-accent-fg' : 'text-muted'}`}
-            >
-              {m === 'simple' ? 'תצוגה פשוטה' : 'תצוגת מומחה'}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Link href="/streams" className="inline-flex w-fit items-center gap-1 text-sm font-semibold text-muted hover:text-fg">
+        <ArrowRight className="size-4" aria-hidden /> כל הנחלים
+      </Link>
 
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-1.5 text-sm font-bold text-water"><MapPin className="size-4" aria-hidden />{station.stream}</div>
-          <h1 className="mt-0.5 text-2xl font-extrabold tracking-tight lg:text-3xl">{station.name}</h1>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
-            <StatusBadge status={a.status} />
-            {a.kidFriendly && <span className="inline-flex items-center gap-1 rounded-full bg-safe-soft px-2 py-0.5 font-bold text-safe"><Baby className="size-3.5" />מתאים לילדים</span>}
-            <span>קוד תחנה <span className="num">{station.code}</span></span>
-            <span>·</span>
-            <span><span className="num">{station.sampleCount}</span> דגימות מאז <span className="num">{station.firstSample.slice(0, 4)}</span></span>
-          </div>
+      <header>
+        <div className="flex items-center gap-1.5 text-sm font-bold text-water"><MapPin className="size-4" aria-hidden />{station.stream}</div>
+        <h1 className="mt-0.5 text-2xl font-extrabold tracking-tight lg:text-3xl">{station.name}</h1>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
+          <StatusBadge status={a.status} />
+          <span>קוד תחנה <span className="num">{station.code}</span></span>
+          <span>·</span>
+          <span><span className="num">{station.sampleCount}</span> דגימות מאז <span className="num">{station.firstSample.slice(0, 4)}</span></span>
         </div>
-        <button
-          type="button"
-          onClick={() => toggle(id)}
-          aria-pressed={fav}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-semibold ${fav ? 'border-caution/40 bg-caution-soft text-caution' : 'border-border bg-surface text-muted'}`}
-        >
-          <Star className={`size-4 ${fav ? 'fill-current' : ''}`} aria-hidden />
-          {fav ? 'בנחלים שלי' : 'הוספה לנחלים שלי'}
-        </button>
       </header>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_1fr]">
@@ -89,7 +61,6 @@ export default function StationDetail({ id }: { id: string }) {
                 <FindingList findings={issues} />
               </div>
             )}
-            <ScoreBar score={a.score} />
             <div className={`flex items-center gap-2 text-sm ${age > STALE_DAYS ? 'text-caution' : 'text-muted'}`}>
               <CalendarClock className="size-4 shrink-0" aria-hidden />
               דגימה אחרונה: {dateFmt.format(new Date(station.latest.d))} ({ageLabel(station.latest.d)})
@@ -107,8 +78,23 @@ export default function StationDetail({ id }: { id: string }) {
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-border py-2.5 text-sm font-bold hover:bg-surface-hover"
             >
               <Navigation className="size-4 text-water" aria-hidden /> ניווט לתחנה
-              <span className="text-xs font-normal text-faint">(מיקום משוער)</span>
+              <span className="text-xs font-normal text-faint">
+                {station.approxLocation ? '(מיקום משוער)' : '(מיקום רשמי — רשות המים)'}
+              </span>
             </a>
+            <p className="text-xs leading-relaxed text-muted">
+              {station.official ? (
+                <>
+                  נ״צ רשמי: תחנה הידרומטרית <span className="num">{station.official.id}</span> &quot;{station.official.name}&quot; ·
+                  ITM <span className="num">{station.official.itmX} / {station.official.itmY}</span> ·{' '}
+                  <span className="num">{station.lat.toFixed(5)}, {station.lng.toFixed(5)}</span>
+                </>
+              ) : (
+                <>
+                  נ״צ משוער לפי שם התחנה: <span className="num">{station.lat.toFixed(4)}, {station.lng.toFixed(4)}</span>
+                </>
+              )}
+            </p>
           </div>
         </Card>
 
@@ -118,12 +104,10 @@ export default function StationDetail({ id }: { id: string }) {
               <CardHeader icon={<LineIcon className="size-4" />} title="תחזית ל-3 הימים הקרובים" subtitle="מודל גידול לוגיסטי — מהדגימה האחרונה אל הרמה העונתית האופיינית לתחנה" />
               <div className="px-4 pb-4">
                 <ForecastStrip forecast={forecast} />
-                {mode === 'expert' && (
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    N₀ = <span className="num">{fmt(forecast.n0)}</span> ({forecast.fromDate}), K = חציון חודשי היסטורי ={' '}
-                    <span className="num">{fmt(forecast.k)}</span>, r = 0.35 ליום. <Link href="/models" className="font-semibold text-water underline">איך זה עובד?</Link>
-                  </p>
-                )}
+                <p className="mt-2 text-xs leading-relaxed text-muted">
+                  N₀ = <span className="num">{fmt(forecast.n0)}</span> ({forecast.fromDate}), K = חציון חודשי היסטורי ={' '}
+                  <span className="num">{fmt(forecast.k)}</span>, r = 0.35 ליום. <Link href="/models" className="font-semibold text-water underline">איך זה עובד?</Link>
+                </p>
               </div>
             </Card>
           )}
@@ -138,18 +122,10 @@ export default function StationDetail({ id }: { id: string }) {
               <StatusBadge status="safe" />
             </Link>
           )}
-          {mode === 'simple' && (
-            <div className="grid grid-cols-3 gap-2">
-              {(['Fcoli', 'Do', 'Temp'] as const)
-                .filter((k) => station.latest.v[k] != null) // not measured → not shown
-                .map((k) => {
-                  const info = paramInfo(k);
-                  return <Stat key={k} label={info.he} value={<span className="num">{fmt(station.latest.v[k])}</span>} hint={info.unit} />;
-                })}
-            </div>
-          )}
         </div>
       </div>
+
+      <LatestTiles station={station} a={a} />
 
       <Card>
         <CardHeader icon={<LineIcon className="size-4" />} title="היסטוריית מדידות" subtitle={`${station.sampleCount} דגימות · קווי הסף מסומנים בגרף`} />
@@ -157,54 +133,80 @@ export default function StationDetail({ id }: { id: string }) {
           {loading || !series ? (
             <div className="grid h-64 place-items-center text-sm text-muted">טוען נתונים…</div>
           ) : (
-            <HistoryChart samples={series} expert={mode === 'expert'} />
+            <HistoryChart samples={series} expert />
           )}
         </div>
       </Card>
 
-      {mode === 'expert' && <LatestTable />}
-
+      <LatestTable station={station} a={a} />
     </div>
   );
+}
 
-  function LatestTable() {
-    const groups = new Map<ParamGroup, { key: string; value: number; q?: string }[]>();
-    for (const [key, value] of Object.entries(station.latest.v)) {
-      const g = paramInfo(key).group;
-      if (!groups.has(g)) groups.set(g, []);
-      groups.get(g)!.push({ key, value, q: station.latest.q?.[key] });
-    }
-    const order = PARAMS.map((p) => p.key);
-    return (
-      <Card>
-        <CardHeader icon={<TableProperties className="size-4" />} title="הדגימה האחרונה — כל הפרמטרים" subtitle={dateFmt.format(new Date(station.latest.d))} />
-        <div className="grid gap-4 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[...groups.entries()].map(([g, rows]) => (
-            <div key={g}>
-              <div className="mb-1 text-xs font-bold text-muted">{GROUP_LABEL[g]}</div>
-              <table className="w-full text-sm">
-                <tbody>
-                  {rows.sort((x, y) => order.indexOf(x.key) - order.indexOf(y.key)).map((r) => {
-                    const info = paramInfo(r.key);
-                    const f = a.findings.find((x) => x.key === r.key);
-                    const color = f?.severity === 'danger' ? 'text-danger' : f?.severity === 'caution' ? 'text-caution' : '';
-                    return (
-                      <tr key={r.key} className="border-b border-border last:border-0">
-                        <td className="py-1.5" title={info.explain}>{info.he}</td>
-                        <td className={`num py-1.5 text-end font-semibold ${color}`}>{r.q}{fmt(r.value)}</td>
-                        <td className="w-20 py-1.5 ps-2 text-xs text-faint" dir="ltr">{info.unit}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+/** Latest-sample numbers for the key parameters that were actually measured. */
+function LatestTiles({ station, a }: { station: Station; a: Assessment }) {
+  const keys = TILE_KEYS.filter((k) => station.latest.v[k] != null);
+  if (!keys.length) return null;
+  return (
+    <Card>
+      <CardHeader icon={<Gauge className="size-4" />} title="המדידות האחרונות" subtitle={dateFmt.format(new Date(station.latest.d))} />
+      <div className="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3 lg:grid-cols-5">
+        {keys.map((k) => {
+          const info = paramInfo(k);
+          const sev = a.findings.find((f) => f.key === k)?.severity;
+          const style = sev === 'danger' ? 'border-danger/30 bg-danger-soft text-danger'
+            : sev === 'caution' ? 'border-caution/30 bg-caution-soft text-caution' : 'border-border bg-surface-2 text-fg';
+          return (
+            <div key={k} className={`rounded-xl border px-3 py-2.5 ${style}`} title={info.explain}>
+              <div className="truncate text-xs text-muted">{info.he}</div>
+              <div className="num mt-0.5 text-xl font-extrabold">{station.latest.q?.[k] ?? ''}{fmt(station.latest.v[k])}</div>
+              <div className="text-[11px] text-faint" dir="ltr">{info.unit || ' '}</div>
             </div>
-          ))}
-        </div>
-        <p className="flex items-center gap-1.5 border-t border-border px-4 py-2.5 text-xs text-faint">
-          <FlaskConical className="size-3.5" aria-hidden /> ערכים עם &quot;&lt;&quot; נמוכים מסף הגילוי של המעבדה.
-        </p>
-      </Card>
-    );
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/** Every parameter in the latest sample, grouped. */
+function LatestTable({ station, a }: { station: Station; a: Assessment }) {
+  const groups = new Map<ParamGroup, { key: string; value: number; q?: string }[]>();
+  for (const [key, value] of Object.entries(station.latest.v)) {
+    const g = paramInfo(key).group;
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g)!.push({ key, value, q: station.latest.q?.[key] });
   }
+  const order = PARAMS.map((p) => p.key);
+  return (
+    <Card>
+      <CardHeader icon={<TableProperties className="size-4" />} title="הדגימה האחרונה — כל הפרמטרים" subtitle={dateFmt.format(new Date(station.latest.d))} />
+      <div className="grid grid-cols-1 gap-4 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[...groups.entries()].map(([g, rows]) => (
+          <div key={g}>
+            <div className="mb-1 text-xs font-bold text-muted">{GROUP_LABEL[g]}</div>
+            <table className="w-full text-sm">
+              <tbody>
+                {rows.sort((x, y) => order.indexOf(x.key) - order.indexOf(y.key)).map((r) => {
+                  const info = paramInfo(r.key);
+                  const f = a.findings.find((x) => x.key === r.key);
+                  const color = f?.severity === 'danger' ? 'text-danger' : f?.severity === 'caution' ? 'text-caution' : '';
+                  return (
+                    <tr key={r.key} className="border-b border-border last:border-0">
+                      <td className="py-1.5" title={info.explain}>{info.he}</td>
+                      <td className={`num py-1.5 text-end font-semibold ${color}`}>{r.q}{fmt(r.value)}</td>
+                      <td className="w-20 py-1.5 ps-2 text-xs text-faint" dir="ltr">{info.unit}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+      <p className="flex items-center gap-1.5 border-t border-border px-4 py-2.5 text-xs text-faint">
+        <FlaskConical className="size-3.5" aria-hidden /> ערכים עם &quot;&lt;&quot; נמוכים מסף הגילוי של המעבדה.
+      </p>
+    </Card>
+  );
 }

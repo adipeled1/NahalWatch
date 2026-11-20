@@ -21,8 +21,10 @@ export interface Station {
   region: Region;
   lat: number;
   lng: number;
-  /** Coordinates were placed by hand from the station name — the source data has no GPS. */
+  /** true = placed by hand from the station name; false = official Water Authority coordinates. */
   approxLocation: boolean;
+  /** Official Water Authority hydrometric station at the same site (when not approximate). */
+  official?: { id: number; name: string; itmX: number; itmY: number };
   sampleCount: number;
   firstSample: string;
   latest: Sample;

@@ -6,7 +6,7 @@ type Forecast = NonNullable<ReturnType<typeof forecastFcoli>>;
 const dayFmt = new Intl.DateTimeFormat('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' });
 
 const cls = (v: number) =>
-  v > 1000 ? { text: 'text-danger', bg: 'bg-danger-soft', label: 'אזהרה' }
+  v > 400 ? { text: 'text-danger', bg: 'bg-danger-soft', label: 'אזהרה' }
   : v > 200 ? { text: 'text-caution', bg: 'bg-caution-soft', label: 'חשוד' }
   : { text: 'text-safe', bg: 'bg-safe-soft', label: 'תקין' };
 

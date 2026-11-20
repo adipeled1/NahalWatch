@@ -50,7 +50,7 @@ export function FindingList({ findings, compact }: { findings: Finding[]; compac
           >
             <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              {f.label}: <bdi dir="ltr" className="num font-extrabold">{f.valueText}</bdi> — {f.verdict}
+              {f.label}: <bdi dir="ltr" className="num font-extrabold whitespace-nowrap">{f.valueText}</bdi> — {f.verdict}
             </span>
           </li>
         );

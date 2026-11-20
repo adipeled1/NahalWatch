@@ -1,11 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ChevronLeft, Search, Star } from 'lucide-react';
+import { ChevronLeft, Search } from 'lucide-react';
 import { REGION_LABEL } from '@/lib/data';
 import { ageLabel, fmt, type Status } from '@/lib/quality';
 import { rateAll, type RatedStation } from '@/lib/stations';
-import { useFavorites } from '@/lib/storage';
 import type { Region } from '@/lib/types';
 import { Card, Chip, PageHeader } from '@/components/ui/Card';
 import { StatusBadge, StatusDot } from '@/components/ui/Status';
@@ -14,7 +13,6 @@ const RANK: Record<Status, number> = { safe: 0, caution: 1, danger: 2, unknown: 
 
 export default function StreamsList() {
   const rated = useMemo(() => rateAll(), []);
-  const { favorites } = useFavorites();
   const [region, setRegion] = useState<Region | 'all'>('north');
   const [q, setQ] = useState('');
   const [showOld, setShowOld] = useState(false);
@@ -38,18 +36,9 @@ export default function StreamsList() {
       .sort((a, b) => RANK[a.best] - RANK[b.best] || a.stream.localeCompare(b.stream, 'he'));
   }, [rated, region, q, showOld]);
 
-  const favList = rated.filter((r) => favorites.includes(r.station.id));
-
   return (
     <div>
       <PageHeader title="נחלים ותחנות" subtitle="כל תחנות הניטור, מסודרות לפי נחל. נחלים שיש בהם מקום תקין לרחצה מופיעים ראשונים." />
-
-      {favList.length > 0 && (
-        <Card className="mb-4">
-          <div className="flex items-center gap-2 px-4 pt-3 text-sm font-bold"><Star className="size-4 fill-caution text-caution" />הנחלים שלי</div>
-          <ul className="divide-y divide-border">{favList.map((r) => <Row key={r.station.id} r={r} showStream />)}</ul>
-        </Card>
-      )}
 
       <div className="mb-4 flex flex-col gap-3">
         <div className="relative">

@@ -1,44 +1,70 @@
 /**
- * Swim-safety "traffic light" for a single sample.
+ * Swim-safety "traffic light" for a single sample, built ONLY from official Israeli limits:
  *
- * The rules are an EDUCATIONAL index built for this project, not an official
- * Ministry of Health ruling. Thresholds follow commonly used recreational-water
- * guidance (fecal indicator bacteria, EU Bathing Water Directive inland classes)
- * and Israeli stream-quality targets (Inbar committee) for the chemical
- * indicators. Every threshold lives in RULES so the team can tune them in one place.
+ * 1. Ministry of Health — bathing/wading in streams (Environmental Health Dept., 2024 activity
+ *    report, May 2025, based on the Chief Engineer's 2010 bathing-water guideline):
+ *    fecal coliforms ≤ 200 /100 ml seasonal geometric mean; > 400 /100 ml is an exceedance,
+ *    after which the Ministry warns that entering the stream may be dangerous.
+ *    → green ≤ 200 · amber 200–400 · red > 400.
+ * 2. Inbar regulations — Public Health Regulations (Effluent Quality Standards and Rules for
+ *    Sewage Treatment), 2010, First Schedule, "quality required for discharge to streams".
+ *    Each parameter has a "maximum monthly average" and a "maximum value":
+ *    → amber above the monthly-average value · red above the maximum value.
+ *    Parameters with a single hard limit (dissolved-oxygen minimum, pH range) → red when breached.
+ *
+ * Parameters with no official limit (E. coli, fecal streptococci, temperature, …) are shown
+ * but never change the color. Every limit lives in RULES.
  */
 import { paramInfo } from './params';
 import type { Sample } from './types';
 
 export type Status = 'safe' | 'caution' | 'danger' | 'unknown';
 export type Severity = 'ok' | 'caution' | 'danger';
+export type RuleSource = 'moh' | 'inbar';
 
-interface Rule {
+export interface Rule {
   key: string;
-  /** Value above which the reading is a caution / danger. */
+  source: RuleSource;
+  /** Value above which the reading is amber / red. */
   cautionAbove?: number;
   dangerAbove?: number;
-  /** For parameters where LOW is bad (dissolved oxygen). */
-  cautionBelow?: number;
-  /** pH-style acceptable range. */
+  /** Hard minimum (dissolved oxygen) — red when breached. */
+  dangerBelow?: number;
+  /** Hard allowed range (pH) — red when breached. */
   range?: [number, number];
-  /** Bacteria decide the status on their own; chemistry can only raise it to "caution". */
-  decisive: boolean;
 }
 
-export const RULES: Rule[] = [
-  { key: 'Fcoli', cautionAbove: 200, dangerAbove: 1000, decisive: true },
-  { key: 'Ecoli', cautionAbove: 500, dangerAbove: 1000, decisive: true },
-  { key: 'Fstrp', cautionAbove: 200, dangerAbove: 400, decisive: true },
-  { key: 'BODt', cautionAbove: 15, decisive: false },
-  { key: 'NH4', cautionAbove: 1.5, decisive: false },
-  { key: 'Do', cautionBelow: 3, decisive: false },
-  { key: 'pH', range: [6.5, 8.5], decisive: false },
-  { key: 'Minoil', cautionAbove: 1, decisive: false },
-  { key: 'TSS105', cautionAbove: 50, decisive: false },
-];
+export const SOURCE_LABEL: Record<RuleSource, string> = {
+  moh: 'משרד הבריאות',
+  inbar: 'תקנות ענבר',
+};
 
-const BACTERIA_KEYS = RULES.filter((r) => r.decisive).map((r) => r.key);
+export const RULES: Rule[] = [
+  // Ministry of Health — bathing in streams
+  { key: 'Fcoli', source: 'moh', cautionAbove: 200, dangerAbove: 400 },
+  // Inbar regulations, First Schedule, discharge to streams: monthly-average value / maximum value
+  { key: 'BODt', source: 'inbar', cautionAbove: 10, dangerAbove: 15 },
+  { key: 'CODt', source: 'inbar', cautionAbove: 70, dangerAbove: 100 },
+  { key: 'TSS105', source: 'inbar', cautionAbove: 10, dangerAbove: 15 },
+  // The schedule limits ammonia nitrogen; the lab column is NH4 and is compared as reported.
+  { key: 'NH4', source: 'inbar', cautionAbove: 1.5, dangerAbove: 2.5 },
+  { key: 'Ntot', source: 'inbar', cautionAbove: 10, dangerAbove: 15 },
+  { key: 'Ptot', source: 'inbar', cautionAbove: 1, dangerAbove: 2 },
+  { key: 'Cl', source: 'inbar', cautionAbove: 400, dangerAbove: 480 },
+  { key: 'Na', source: 'inbar', cautionAbove: 200, dangerAbove: 240 },
+  { key: 'Minoil', source: 'inbar', cautionAbove: 1.0, dangerAbove: 1.5 },
+  { key: 'ABS', source: 'inbar', cautionAbove: 0.5, dangerAbove: 1.0 },
+  { key: 'Hg', source: 'inbar', cautionAbove: 0.0005, dangerAbove: 0.0025 },
+  { key: 'Cr', source: 'inbar', cautionAbove: 0.05, dangerAbove: 0.25 },
+  { key: 'Ni', source: 'inbar', cautionAbove: 0.05, dangerAbove: 0.25 },
+  { key: 'Pb', source: 'inbar', cautionAbove: 0.008, dangerAbove: 0.04 },
+  { key: 'Cd', source: 'inbar', cautionAbove: 0.005, dangerAbove: 0.025 },
+  { key: 'Zn', source: 'inbar', cautionAbove: 0.2, dangerAbove: 1.0 },
+  { key: 'As', source: 'inbar', cautionAbove: 0.01, dangerAbove: 0.05 },
+  { key: 'Cu', source: 'inbar', cautionAbove: 0.02, dangerAbove: 0.1 },
+  { key: 'Do', source: 'inbar', dangerBelow: 3 },
+  { key: 'pH', source: 'inbar', range: [7.0, 8.5] },
+];
 
 export interface Finding {
   key: string;
@@ -46,13 +72,14 @@ export interface Finding {
   value: number;
   unit: string;
   severity: Severity;
+  source: RuleSource;
   /** The limit that was crossed (or the nearest one, for "ok" readings). */
   limit: number | null;
   /** Formatted value with unit, e.g. "2,400 cfu/100ml" (render LTR-isolated). */
   valueText: string;
-  /** e.g. "מעל הסף של 1,000" */
+  /** e.g. "מעל הסף של 400 (משרד הבריאות)" */
   verdict: string;
-  /** Human sentence, e.g. "קוליפורמים צואתיים: 2,400 cfu/100ml — מעל הסף של 1,000" */
+  /** Human sentence, e.g. "קוליפורמים צואתיים: 2,400 cfu/100ml — מעל הסף של 400 (משרד הבריאות)" */
   message: string;
 }
 
@@ -60,114 +87,87 @@ export interface Assessment {
   status: Status;
   /** Every rule-checked parameter in the sample, worst first. */
   findings: Finding[];
-  /** 0 (very polluted) … 100 (clean). null when no rule parameter was measured. */
-  score: number | null;
-  /** Suitable for small children: safe AND fecal coliforms at "excellent" level. */
-  kidFriendly: boolean;
   headline: string;
   familyAnswer: string;
 }
 
-const nf = new Intl.NumberFormat('he-IL', { maximumFractionDigits: 2 });
+const nf = new Intl.NumberFormat('he-IL', { maximumFractionDigits: 4 });
+/** Number format for measured values (keeps small metal concentrations readable). */
 export const fmt = (n: number) => nf.format(n);
 
 function evaluate(rule: Rule, value: number, qualifier?: string): Finding {
   const info = paramInfo(rule.key);
   const unit = info.unit ? ` ${info.unit}` : '';
   const label = info.en && info.en !== info.he ? `${info.he} (${info.en})` : info.he;
+  const src = SOURCE_LABEL[rule.source];
   // "<x" means the true value is below x — never count it as an exceedance.
   const below = qualifier === '<';
 
   let severity: Severity = 'ok';
-  let limit: number | null = rule.dangerAbove ?? rule.cautionAbove ?? rule.cautionBelow ?? null;
-  let verdict = 'תקין';
+  let limit: number | null = rule.dangerAbove ?? rule.cautionAbove ?? rule.dangerBelow ?? null;
+  let verdict = 'בתקן';
 
   if (rule.dangerAbove != null && value > rule.dangerAbove && !below) {
     severity = 'danger';
     limit = rule.dangerAbove;
-    verdict = `מעל הסף של ${fmt(rule.dangerAbove)}`;
+    verdict = `מעל הסף של ${fmt(rule.dangerAbove)} (${src}${rule.source === 'inbar' ? ', ערך מרבי' : ''})`;
   } else if (rule.cautionAbove != null && value > rule.cautionAbove && !below) {
     severity = 'caution';
     limit = rule.cautionAbove;
-    verdict = `מעל ${fmt(rule.cautionAbove)}`;
-  } else if (rule.cautionBelow != null && value < rule.cautionBelow) {
-    severity = 'caution';
-    limit = rule.cautionBelow;
-    verdict = `מתחת למינימום של ${fmt(rule.cautionBelow)}`;
+    verdict = `מעל ${fmt(rule.cautionAbove)} (${src}${rule.source === 'inbar' ? ', ממוצע חודשי' : ''})`;
+  } else if (rule.dangerBelow != null && value < rule.dangerBelow) {
+    severity = 'danger';
+    limit = rule.dangerBelow;
+    verdict = `מתחת למינימום של ${fmt(rule.dangerBelow)} (${src})`;
   } else if (rule.range && (value < rule.range[0] || value > rule.range[1])) {
-    severity = 'caution';
+    severity = 'danger';
     limit = value < rule.range[0] ? rule.range[0] : rule.range[1];
-    verdict = `מחוץ לטווח ${rule.range[0]}–${rule.range[1]}`;
+    verdict = `מחוץ לטווח ${fmt(rule.range[0])}–${fmt(rule.range[1])} (${src})`;
   }
   const valueText = `${qualifier ?? ''}${fmt(value)}${unit}`;
-  return { key: rule.key, label, value, unit: info.unit, severity, limit, valueText, verdict,
-    message: `${label}: ${valueText} — ${verdict}` };
+  return {
+    key: rule.key, label, value, unit: info.unit, severity, source: rule.source, limit, valueText, verdict,
+    message: `${label}: ${valueText} — ${verdict}`,
+  };
 }
 
 const RANK: Record<Severity, number> = { danger: 2, caution: 1, ok: 0 };
 
-/** Score: 100 minus a penalty per parameter, bacteria weighted heaviest (log scale). */
-function computeScore(sample: Sample): number | null {
-  let penalty = 0;
-  let measured = 0;
-  const f = sample.v.Fcoli ?? sample.v.Ecoli;
-  if (f != null) {
-    measured++;
-    // 10 cfu → 0, 200 → ~23, 1000 → ~37, 10 000 → ~55, 100 000+ → 70
-    penalty += Math.min(70, Math.max(0, (Math.log10(Math.max(f, 1)) - 1) * 17.5));
-  }
-  for (const r of RULES.filter((x) => !x.decisive)) {
-    const v = sample.v[r.key];
-    if (v == null) continue;
-    measured++;
-    if (evaluate(r, v, sample.q?.[r.key]).severity !== 'ok') penalty += 8;
-  }
-  if (!measured) return null;
-  return Math.max(0, Math.round(100 - penalty));
-}
+const HEADLINE: Record<Status, string> = {
+  safe: 'כל המדדים בתקן',
+  caution: 'חשד — יש חריגה מהתקן',
+  danger: 'אזהרה: לא להיכנס למים',
+  unknown: 'אין מדידת קוליפורמים',
+};
+const ANSWER: Record<Status, string> = {
+  safe: 'כן. כל המדדים שנבדקו בדגימה האחרונה בתוך הערכים הרשמיים.',
+  caution: 'יש מדדים מעל היעד הרשמי — הפירוט למטה. מומלץ להיזהר ולא לבלוע מים.',
+  danger: 'לא. יש מדדים מעל הערך המרבי הרשמי, והכניסה למים עלולה להיות מסוכנת.',
+  unknown: 'בדגימה האחרונה לא נמדדו קוליפורמים צואתיים, ולכן אי אפשר לקבוע אם בטוח להיכנס.',
+};
 
 export function assess(sample: Sample | undefined | null): Assessment {
   if (!sample) {
-    return { status: 'unknown', findings: [], score: null, kidFriendly: false,
-      headline: 'אין נתונים', familyAnswer: 'אין לנו נתונים על התחנה הזו.' };
+    return { status: 'unknown', findings: [], headline: 'אין נתונים', familyAnswer: 'אין לנו נתונים על התחנה הזו.' };
   }
   const findings = RULES.filter((r) => sample.v[r.key] != null)
     .map((r) => evaluate(r, sample.v[r.key], sample.q?.[r.key]))
     .sort((a, b) => RANK[b.severity] - RANK[a.severity]);
 
-  const bact = findings.filter((f) => BACTERIA_KEYS.includes(f.key));
-  const chem = findings.filter((f) => !BACTERIA_KEYS.includes(f.key));
-
   let status: Status;
-  if (!bact.length) status = 'unknown';
-  else if (bact.some((f) => f.severity === 'danger')) status = 'danger';
-  else if (bact.some((f) => f.severity === 'caution') || chem.some((f) => f.severity !== 'ok')) status = 'caution';
+  if (findings.some((f) => f.severity === 'danger')) status = 'danger';
+  else if (findings.some((f) => f.severity === 'caution')) status = 'caution';
+  else if (sample.v.Fcoli == null) status = 'unknown';
   else status = 'safe';
 
-  const fcoli = sample.v.Fcoli;
-  const kidFriendly = status === 'safe' && (fcoli == null || fcoli <= 100);
-
-  const HEADLINE: Record<Status, string> = {
-    safe: 'מים תקינים לרחצה',
-    caution: 'חשד — מומלץ להיזהר',
-    danger: 'אזהרה: אין להיכנס למים',
-    unknown: 'אין מדידת חיידקים',
-  };
-  const FAMILY: Record<Status, string> = {
-    safe: kidFriendly ? 'כן, אפשר להיכנס עם הילדים.' : 'אפשר להיכנס, אבל עדיף שילדים קטנים לא יבלעו מים.',
-    caution: 'עדיף לא להכניס ילדים למים. מבוגרים — רק בזהירות.',
-    danger: 'לא. המים מזוהמים ואין להיכנס אליהם.',
-    unknown: 'אין לנו מספיק מידע כדי לומר. כדאי לבדוק תחנה סמוכה.',
-  };
-
-  return { status, findings, score: computeScore(sample), kidFriendly, headline: HEADLINE[status], familyAnswer: FAMILY[status] };
+  return { status, findings, headline: HEADLINE[status], familyAnswer: ANSWER[status] };
 }
 
-/** Findings that crossed a limit — what the red/yellow card spells out. */
+/** Findings that crossed a limit — what the red/amber card spells out. */
 export const exceedances = (a: Assessment) => a.findings.filter((f) => f.severity !== 'ok');
 
 export const STATUS_LABEL: Record<Status, string> = {
-  safe: 'מותר לרחצה',
+  safe: 'בתקן',
   caution: 'חשוד',
   danger: 'אזהרה',
   unknown: 'אין נתונים',

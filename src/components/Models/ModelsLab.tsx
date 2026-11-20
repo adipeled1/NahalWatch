@@ -88,7 +88,7 @@ function LogisticCard({ stationId }: { stationId: string }) {
               <YAxis stroke="var(--faint)" fontSize={11} width={48} tickFormatter={(v) => fmt(v)} />
               <Tooltip contentStyle={tooltipStyle} labelFormatter={(t) => `יום ${Number(t).toFixed(1)}`} formatter={(v) => [fmt(Math.round(Number(v))), 'cfu/100ml']} />
               <ReferenceLine y={k} stroke="var(--water)" strokeDasharray="4 4" label={{ value: 'K', fill: 'var(--water)', fontSize: 11, position: 'right' }} />
-              <ReferenceLine y={1000} stroke="var(--danger)" strokeDasharray="5 4" />
+              <ReferenceLine y={400} stroke="var(--danger)" strokeDasharray="5 4" />
               <ReferenceLine y={200} stroke="var(--caution)" strokeDasharray="5 4" />
               <Line dataKey="value" stroke="var(--accent)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
             </LineChart>
@@ -109,7 +109,7 @@ function LogisticCard({ stationId }: { stationId: string }) {
 
 function SeasonCard({ monthly }: { monthly: (number | null)[] }) {
   const data = MONTHS.map((m, i) => ({ m, v: monthly[i] ?? 0, has: monthly[i] != null }));
-  const color = (v: number) => (v > 1000 ? 'var(--danger)' : v > 200 ? 'var(--caution)' : 'var(--safe)');
+  const color = (v: number) => (v > 400 ? 'var(--danger)' : v > 200 ? 'var(--caution)' : 'var(--safe)');
   return (
     <Card>
       <CardHeader icon={<CalendarRange className="size-4" />} title="עונתיות החיידקים" subtitle="חציון קוליפורמים צואתיים לפי חודש, מכל שנות הניטור" />
@@ -162,7 +162,7 @@ function BacktestCard({ stationId }: { stationId: string }) {
                   <YAxis scale="log" domain={[1, 'auto']} allowDataOverflow stroke="var(--faint)" fontSize={11} width={52} tickFormatter={(v) => fmt(v)} />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(t) => new Date(Number(t)).toLocaleDateString('he-IL')} formatter={(v, n) => [fmt(Number(v)), n === 'measured' ? 'נמדד' : 'מודל']} />
                   <Legend formatter={(v) => (v === 'measured' ? 'נמדד בשטח' : 'תחזית המודל')} wrapperStyle={{ fontSize: 12 }} />
-                  <ReferenceLine y={1000} stroke="var(--danger)" strokeDasharray="5 4" />
+                  <ReferenceLine y={400} stroke="var(--danger)" strokeDasharray="5 4" />
                   <Line dataKey="measured" stroke="var(--water)" strokeWidth={1.5} dot={{ r: 2 }} isAnimationActive={false} />
                   <Line dataKey="predicted" stroke="var(--accent)" strokeWidth={2} strokeDasharray="6 3" dot={false} isAnimationActive={false} />
                 </LineChart>

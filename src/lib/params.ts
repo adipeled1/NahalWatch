@@ -2,7 +2,7 @@
  * Display metadata for the measured parameters, keyed by the Excel header token.
  * `group` drives how the station screen groups them; `featured` ones get charts.
  */
-export type ParamGroup = 'bacteria' | 'organic' | 'nutrients' | 'physical' | 'minerals' | 'other';
+export type ParamGroup = 'bacteria' | 'organic' | 'nutrients' | 'physical' | 'minerals' | 'metals' | 'other';
 
 export interface ParamInfo {
   key: string;
@@ -32,7 +32,7 @@ export const PARAMS: ParamInfo[] = [
   { key: 'TSS105', he: 'מוצקים מרחפים', en: 'TSS', unit: 'mg/l', group: 'organic', featured: true,
     explain: 'חלקיקים מרחפים — אחראים לעכירות המים.' },
   { key: 'Minoil', he: 'שמן מינרלי', en: 'Mineral oil', unit: 'mg/l', group: 'organic' },
-  { key: 'ABS', he: 'דטרגנטים', en: 'ABS', unit: 'mg/l', group: 'organic' },
+  { key: 'ABS', he: 'דטרגנטים אניוניים', en: 'Detergents', unit: 'mg/l', group: 'organic' },
 
   { key: 'NH4', he: 'אמוניום', en: 'Ammonium', unit: 'mg/l', group: 'nutrients', featured: true,
     explain: 'תוצר פירוק של שפכים. בריכוז גבוה רעיל לדגים.' },
@@ -63,6 +63,15 @@ export const PARAMS: ParamInfo[] = [
   { key: 'Ca', he: 'סידן', en: 'Calcium', unit: 'mg/l', group: 'minerals' },
   { key: 'Mg', he: 'מגנזיום', en: 'Magnesium', unit: 'mg/l', group: 'minerals' },
   { key: 'K', he: 'אשלגן', en: 'Potassium', unit: 'mg/l', group: 'minerals' },
+
+  { key: 'Hg', he: 'כספית', en: 'Mercury', unit: 'mg/l', group: 'metals' },
+  { key: 'Cr', he: 'כרום', en: 'Chromium', unit: 'mg/l', group: 'metals' },
+  { key: 'Ni', he: 'ניקל', en: 'Nickel', unit: 'mg/l', group: 'metals' },
+  { key: 'Pb', he: 'עופרת', en: 'Lead', unit: 'mg/l', group: 'metals' },
+  { key: 'Cd', he: 'קדמיום', en: 'Cadmium', unit: 'mg/l', group: 'metals' },
+  { key: 'Zn', he: 'אבץ', en: 'Zinc', unit: 'mg/l', group: 'metals' },
+  { key: 'As', he: 'ארסן', en: 'Arsenic', unit: 'mg/l', group: 'metals' },
+  { key: 'Cu', he: 'נחושת', en: 'Copper', unit: 'mg/l', group: 'metals' },
 ];
 
 export const PARAM_BY_KEY: Record<string, ParamInfo> = Object.fromEntries(PARAMS.map((p) => [p.key, p]));
@@ -73,6 +82,7 @@ export const GROUP_LABEL: Record<ParamGroup, string> = {
   nutrients: 'נוטריאנטים',
   physical: 'פיזיקלי',
   minerals: 'מינרלים',
+  metals: 'מתכות',
   other: 'אחר',
 };
 

@@ -18,6 +18,12 @@ const COORDS = Object.fromEntries(
   Object.entries(JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'station-coords.json'), 'utf8')))
     .map(([k, v]) => [normKey(k), v]),
 );
+// Official coordinates (Water Authority hydrometric stations, matched by hand) override the estimates.
+const OFFICIAL = Object.fromEntries(
+  Object.entries(JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'station-coords-official.json'), 'utf8')))
+    .filter(([k]) => !k.startsWith('_'))
+    .map(([k, v]) => [normKey(k), v]),
+);
 
 const xlsxFile = fs.readdirSync(RAW_DIR).find((f) => f.endsWith('.xlsx'));
 if (!xlsxFile) throw new Error(`No .xlsx file in ${RAW_DIR}`);
@@ -140,7 +146,8 @@ for (const g of groups.values()) {
   for (let n = 2; usedIds.has(id); n++) id = `s${code}-${n}`;
   usedIds.add(id);
 
-  let coord = COORDS[`${g.stream}|${g.name}`];
+  const official = OFFICIAL[`${g.stream}|${g.name}`];
+  let coord = official ? [official.lat, official.lng] : COORDS[`${g.stream}|${g.name}`];
   if (!coord) {
     coord = anchorOf(g.stream);
     missingCoords.push(`${g.stream}|${g.name}`);
@@ -161,7 +168,10 @@ for (const g of groups.values()) {
     region: regionOf(coord[0]),
     lat: coord[0],
     lng: coord[1],
-    approxLocation: true,
+    approxLocation: !official,
+    ...(official
+      ? { official: { id: official.hydroId, name: official.hydroName, itmX: official.itmX, itmY: official.itmY } }
+      : {}),
     sampleCount: g.samples.length,
     firstSample: g.samples[0].d,
     latest,
@@ -187,6 +197,37 @@ const meta = {
   parameters: PARAM_COLS.map((p) => p.key),
 };
 fs.writeFileSync(path.join(OUT_DIR, 'meta.json'), JSON.stringify(meta, null, 2));
+
+// Human-readable list of every station and where its map location comes from.
+const locRows = stations.map((s) => ({
+  'נחל/קבוצה': s.stream,
+  'שם תחנה (אצלנו)': s.name,
+  'קוד מקווה מים': s.code,
+  'מקור המיקום': s.official ? 'רשמי — רשות המים' : 'משוער לפי שם התחנה',
+  'מס׳ תחנה הידרומטרית': s.official?.id ?? '',
+  'שם התחנה הרשמית': s.official?.name ?? '',
+  'ITM X': s.official?.itmX ?? '',
+  'ITM Y': s.official?.itmY ?? '',
+  'קו רוחב (lat)': s.lat,
+  'קו אורך (lng)': s.lng,
+  'דגימות': s.sampleCount,
+  'דגימה אחרונה': s.latest.d,
+}));
+const wbOut = XLSX.utils.book_new();
+const wsOut = XLSX.utils.json_to_sheet(locRows);
+wsOut['!cols'] = [14, 34, 10, 20, 14, 30, 10, 10, 12, 12, 8, 12].map((wch) => ({ wch }));
+wsOut['!views'] = [{ RTL: true }];
+XLSX.utils.book_append_sheet(wbOut, wsOut, 'מיקומי תחנות');
+const hydro = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'official', 'water-authority-hydro-stations.json'), 'utf8'));
+const wsHydro = XLSX.utils.json_to_sheet(hydro.stations.map((h) => ({
+  'מס׳ תחנה': h.id, 'שם עברית': h.nameHe, 'שם אנגלית': h.nameEn, 'אגן': h.basin, 'סטטוס': h.status,
+  'ITM X': h.itmX, 'ITM Y': h.itmY, 'קו רוחב (lat)': h.lat ?? '', 'קו אורך (lng)': h.lng ?? '',
+})));
+wsHydro['!cols'] = [10, 34, 34, 14, 10, 10, 10, 12, 12].map((wch) => ({ wch }));
+wsHydro['!views'] = [{ RTL: true }];
+XLSX.utils.book_append_sheet(wbOut, wsHydro, 'רשות המים - תחנות רשמיות');
+fs.mkdirSync(path.join(ROOT, 'docs'), { recursive: true });
+XLSX.writeFile(wbOut, path.join(ROOT, 'docs', 'station-locations.xlsx'));
 
 console.log(`✓ ${meta.stationCount} stations · ${meta.streamCount} streams · ${meta.rowCount} rows (${skipped} skipped)`);
 console.log(`  ${meta.firstSample} → ${meta.lastSample}`);

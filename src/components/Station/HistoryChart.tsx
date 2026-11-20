@@ -105,8 +105,8 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
             {rule?.cautionAbove != null && (
               <ReferenceLine y={rule.cautionAbove} stroke="var(--caution)" strokeDasharray="5 4" label={{ value: `חשוד ${fmt(rule.cautionAbove)}`, fill: 'var(--caution)', fontSize: 11, position: 'insideBottomLeft' }} />
             )}
-            {rule?.cautionBelow != null && (
-              <ReferenceLine y={rule.cautionBelow} stroke="var(--caution)" strokeDasharray="5 4" label={{ value: `מינימום ${fmt(rule.cautionBelow)}`, fill: 'var(--caution)', fontSize: 11, position: 'insideBottomLeft' }} />
+            {rule?.dangerBelow != null && (
+              <ReferenceLine y={rule.dangerBelow} stroke="var(--danger)" strokeDasharray="5 4" label={{ value: `מינימום ${fmt(rule.dangerBelow)}`, fill: 'var(--danger)', fontSize: 11, position: 'insideBottomLeft' }} />
             )}
             <Line type="monotone" dataKey="v" stroke="var(--water)" strokeWidth={2} dot={{ r: 2.5, fill: 'var(--water)' }} activeDot={{ r: 5 }} isAnimationActive={false} />
           </LineChart>
@@ -114,7 +114,7 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
       </div>
       <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 px-2 text-xs text-muted">
         <span>מדידות: <b className="num text-fg">{data.length}</b></span>
-        <span>ממוצע: <b className="num text-fg">{fmt(avg)}</b> {info.unit}</span>
+        <span>ממוצע: <b className="num text-fg">{fmt(Math.round(avg * 100) / 100)}</b> {info.unit}</span>
         <span>מקסימום: <b className="num text-fg">{fmt(max)}</b> {info.unit}</span>
         {log && <span className="text-faint">ציר לוגריתמי</span>}
       </div>
