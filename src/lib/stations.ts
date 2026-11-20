@@ -36,6 +36,3 @@ export function countByStatus(list: RatedStation[]): Record<Status, number> {
   for (const r of list) c[r.assessment.status]++;
   return c;
 }
-
-/** Rough driving time for the alternative-stream hint (winding rural roads ≈ 50 km/h). */
-export const driveMinutes = (km: number) => Math.max(5, Math.round((km * 1.3) / 50 * 60 / 5) * 5);

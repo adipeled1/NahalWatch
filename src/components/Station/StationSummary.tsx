@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Baby, CalendarClock, ChevronLeft, MapPin, Navigation, Star, X } from 'lucide-react';
 import { forecastFcoli } from '@/lib/models';
 import { STALE_DAYS, ageLabel, exceedances, fmt } from '@/lib/quality';
-import { driveMinutes, nearestSafe, type RatedStation } from '@/lib/stations';
+import { nearestSafe, type RatedStation } from '@/lib/stations';
 import { useFavorites } from '@/lib/storage';
 import { FindingList, StatusBadge, statusTone } from '@/components/ui/Status';
 import { ScoreBar } from './ScoreBar';
@@ -104,7 +104,7 @@ export default function StationSummary({
           <div className="min-w-0 flex-1 text-sm">
             <div className="font-bold text-safe">חלופה בטוחה קרובה</div>
             <div className="truncate text-fg">
-              {alt.r.station.stream} · {alt.r.station.name} — כ-{driveMinutes(alt.km)} דק׳ נסיעה ({fmt(Math.round(alt.km))} ק״מ)
+              {alt.r.station.stream} · {alt.r.station.name} — {fmt(Math.round(alt.km))} ק״מ בקו אוויר
             </div>
           </div>
           <StatusBadge status="safe" />

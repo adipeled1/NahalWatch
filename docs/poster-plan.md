@@ -22,7 +22,7 @@ meet to form the Jordan.
 ┌──────────────────────────────────────────────────────────────┐
 │ [logo]  NahalWatch — אקולוגיה בכף היד            [Braude]    │  title band 7 cm
 │ "האם אפשר להיכנס למים היום?"                                  │
-│ שקד מאלול · עדי פלד · אור אורבך  |  Advisor: <TBD>           │
+│ שקד מאלול · עדי פלד · אור אורבך | Advisor: Dr. Naomi Unkelos-Shpigel │
 ├────────────────────┬────────────────────┬────────────────────┤
 │ 1. הבעיה           │ 4. HERO: מפת הרמזור — כפר בלום / עמיר    │
 │  persona cards:    │  large screenshot of the map at the      │
@@ -53,7 +53,7 @@ meet to form the Jordan.
    empathy maps.
 2. **The data**: KPI tiles pulled from `public/data/meta.json` (samples, stations, streams, years).
 3. **Architecture**: Excel → `build-data.mjs` → static JSON → Next.js PWA (offline service
-   worker) → phone home screen. No accounts; favorites and reports stay on the device (privacy NFR).
+   worker) → phone home screen. No accounts; favorites stay on the device (privacy NFR).
 4. **Hero**: map screenshot centered on Kfar Blum / Amir / the Jordan confluence, plus phone
    mockups. One of them must be a red station card that spells out the bacteria, the value
    and the threshold.
@@ -61,7 +61,8 @@ meet to form the Jordan.
    Lotka–Volterra bacteria/protozoa oscillation.
 6. **Model vs. field**: backtest chart for Hermon @ Kfar Szold (201 samples, 1996–2024) with the
    "% correct traffic light" tile, which answers research question 4.
-7. **Requirements**: the 5 FRs and 5 NFRs from the design-thinking doc, with ✓ where implemented.
+7. **Requirements**: the FRs and NFRs from the design-thinking doc that the app implements.
+   Leave out hiker field reports (dropped) and shade/parking/stroller filters (not in the data).
 8. **Findings & limitations**: seasonality (summer peak), share of northern stations in each
    color, approximate station locations, latest sample is up to a year old, educational index
    not an official ruling.
@@ -73,7 +74,10 @@ meet to form the Jordan.
 - [ ] QR code → deployed URL (after Vercel deploy)
 - [ ] Logos: app icon `public/icons/icon-512.png`, college logo
 
+## Rule
+Only facts that come from the Excel data or from the running app go on the poster; nothing invented.
+
 ## Open questions
-- Advisor name and college logo for the title band
+- College logo for the title band
 - Language: Hebrew (like the app) or English (like the examples)?
 - Deployed URL for the QR code

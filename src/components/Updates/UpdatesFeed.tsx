@@ -1,10 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { BellRing, ChevronLeft, Lightbulb, LineChart, Sunrise } from 'lucide-react';
+import { BellRing, ChevronLeft, LineChart, Sunrise } from 'lucide-react';
 import { REGION_LABEL } from '@/lib/data';
-import { ageLabel, exceedances, type Status } from '@/lib/quality';
-import { countByStatus, driveMinutes, nearestSafe, rateAll, type RatedStation } from '@/lib/stations';
+import { ageLabel, exceedances, fmt, type Status } from '@/lib/quality';
+import { countByStatus, nearestSafe, rateAll, type RatedStation } from '@/lib/stations';
 import { useFavorites } from '@/lib/storage';
 import type { Region } from '@/lib/types';
 import { Card, Chip, PageHeader } from '@/components/ui/Card';
@@ -17,12 +17,6 @@ const TITLE: Record<Status, string> = {
   unknown: 'דגימה חדשה',
 };
 
-const TIPS = [
-  'אל תבלעו מים מהנחל — גם כשהם נראים צלולים, חיידקים לא נראים בעין.',
-  'אחרי גשם ראשון הזיהום בנחלים עולה: שפכים ונגר נשטפים פנימה. עדיף לחכות כמה ימים.',
-  'פצע פתוח? עדיף לא להיכנס למים — זו הדרך הקלה ביותר לזיהום.',
-  'שמרו על הנחל: קחו את הפסולת איתכם, אל תשתמשו בסבון במים ואל תאכילו דגים.',
-];
 
 export default function UpdatesFeed() {
   const rated = useMemo(() => rateAll(), []);
@@ -46,7 +40,6 @@ export default function UpdatesFeed() {
   const myAlerts = rated.filter((r) => favorites.includes(r.station.id) && (r.assessment.status === 'danger' || r.assessment.status === 'caution'));
   const morning = myAlerts[0];
   const morningAlt = morning ? nearestSafe(morning.station, rated) : null;
-  const tip = TIPS[new Date().getDate() % TIPS.length];
 
   const enableNotifications = async () => {
     if (!('Notification' in window)) { setNotif('הדפדפן לא תומך בהתראות. ב-iPhone יש להוסיף קודם את האפליקציה למסך הבית.'); return; }
@@ -92,7 +85,7 @@ export default function UpdatesFeed() {
                 <p className="mt-1 text-sm">
                   <b className={statusTone(morning.assessment.status).text}>{morning.station.stream} ({morning.station.name}): {morning.assessment.headline}.</b>{' '}
                   {morningAlt
-                    ? <>נחל חלופי במרחק כ-{driveMinutes(morningAlt.km)} דקות נסיעה מסומן בירוק: <Link className="font-semibold text-water underline" href={`/station/${morningAlt.r.station.id}`}>{morningAlt.r.station.stream} · {morningAlt.r.station.name}</Link></>
+                    ? <>נחל חלופי מסומן בירוק, {fmt(Math.round(morningAlt.km))} ק״מ בקו אוויר: <Link className="font-semibold text-water underline" href={`/station/${morningAlt.r.station.id}`}>{morningAlt.r.station.stream} · {morningAlt.r.station.name}</Link></>
                     : 'לא נמצאה חלופה תקינה קרובה.'}
                 </p>
               ) : (
@@ -133,10 +126,6 @@ export default function UpdatesFeed() {
               <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-water">למעבדת המודלים <ChevronLeft className="size-3.5" /></span>
             </Card>
           </Link>
-          <Card className="border-caution/30 bg-caution-soft p-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-caution"><Lightbulb className="size-4" /> טיפ מהטבע</div>
-            <p className="mt-1 text-sm">{tip}</p>
-          </Card>
         </aside>
       </div>
     </div>

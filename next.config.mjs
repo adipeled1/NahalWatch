@@ -8,8 +8,8 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          // Geolocation is allowed for "streams near me"; camera for field-report photos.
-          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self)' },
+          // Geolocation is allowed for "nearest station".
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           {
             key: 'Content-Security-Policy',

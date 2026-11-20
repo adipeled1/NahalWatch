@@ -6,14 +6,13 @@ import { STATION_BY_ID, useSeries } from '@/lib/data';
 import { forecastFcoli } from '@/lib/models';
 import { GROUP_LABEL, PARAMS, paramInfo, type ParamGroup } from '@/lib/params';
 import { STALE_DAYS, ageInDays, ageLabel, assess, exceedances, fmt } from '@/lib/quality';
-import { driveMinutes, nearestSafe, rateAll } from '@/lib/stations';
+import { nearestSafe, rateAll } from '@/lib/stations';
 import { useFavorites } from '@/lib/storage';
 import { Card, CardHeader, Chip, Stat } from '@/components/ui/Card';
 import { FindingList, StatusBadge, statusTone } from '@/components/ui/Status';
 import { ScoreBar } from './ScoreBar';
 import { ForecastStrip } from './ForecastStrip';
 import { HistoryChart } from './HistoryChart';
-import { FieldReports } from './FieldReports';
 
 const dateFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -98,7 +97,7 @@ export default function StationDetail({ id }: { id: string }) {
             </div>
             {age > STALE_DAYS && (
               <p className="rounded-lg bg-caution-soft px-3 py-2 text-xs text-caution">
-                הנתון האחרון ישן מ-{Math.round(STALE_DAYS / 30)} חודשים. המצב בשטח עשוי להיות שונה — השתמשו בתחזית ובדיווחי מטיילים כהשלמה.
+                הנתון האחרון ישן מ-{Math.round(STALE_DAYS / 30)} חודשים. המצב בשטח עשוי להיות שונה — התחזית מבוססת על הנתונים ההיסטוריים של התחנה.
               </p>
             )}
             <a
@@ -134,18 +133,19 @@ export default function StationDetail({ id }: { id: string }) {
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-safe">חלופה בטוחה קרובה</div>
                 <div className="truncate text-sm">{alt.r.station.stream} · {alt.r.station.name}</div>
-                <div className="text-xs text-muted">כ-{driveMinutes(alt.km)} דקות נסיעה · {fmt(Math.round(alt.km))} ק״מ</div>
+                <div className="text-xs text-muted">{fmt(Math.round(alt.km))} ק״מ בקו אוויר</div>
               </div>
               <StatusBadge status="safe" />
             </Link>
           )}
           {mode === 'simple' && (
             <div className="grid grid-cols-3 gap-2">
-              {(['Fcoli', 'Do', 'Temp'] as const).map((k) => {
-                const v = station.latest.v[k];
-                const info = paramInfo(k);
-                return <Stat key={k} label={info.he} value={v == null ? '—' : <span className="num">{fmt(v)}</span>} hint={info.unit} />;
-              })}
+              {(['Fcoli', 'Do', 'Temp'] as const)
+                .filter((k) => station.latest.v[k] != null) // not measured → not shown
+                .map((k) => {
+                  const info = paramInfo(k);
+                  return <Stat key={k} label={info.he} value={<span className="num">{fmt(station.latest.v[k])}</span>} hint={info.unit} />;
+                })}
             </div>
           )}
         </div>
@@ -164,7 +164,6 @@ export default function StationDetail({ id }: { id: string }) {
 
       {mode === 'expert' && <LatestTable />}
 
-      <FieldReports stationId={id} />
     </div>
   );
 

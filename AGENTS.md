@@ -17,6 +17,9 @@ Lotka–Volterra). Hebrew, RTL, mobile-first; installable to the home screen.
 - `npm run verify` — lint + tests + build
 
 ## Conventions
+- Show only information that comes from the spreadsheet (or is computed from it). Do not invent
+  data the Excel lacks (e.g. shade, parking, stroller access, drive times). If it's missing, leave it out.
+- There are no hiker field reports / user-generated content. The feature was dropped on purpose.
 - All swim-safety thresholds live in `RULES` in `src/lib/quality.ts`; change them there only.
   A red/yellow status must always list the parameter, measured value and the threshold
   it crossed (`Finding.verdict`) — never color alone.
