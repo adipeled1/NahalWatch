@@ -1,0 +1,79 @@
+# NahalWatch — Poster Plan
+
+Based on the three previous-semester examples:
+- **ICSA poster (pptx):** A1 portrait, 59.4 × 84 cm. Full-width title band (~5.5 cm) with
+  title, subtitle, authors and logos, then a 2-column grid (left ~19 cm, right ~38 cm).
+  Strong KPI "big number" tiles, one chart per finding, limitations strip at the bottom.
+- **EcoLogic (png):** dark green, rounded outlined boxes, a circular data-flow diagram,
+  KPI list, and a QR code labelled "Demo". Hosted-by line at the bottom.
+- **KinneretInsights / Pollution in Lake Kinneret (pdf):** project description,
+  FR/NFR lists, a use-case/system-structure diagram, screenshots of analytics, key findings,
+  evaluation, conclusions.
+
+Our poster combines the clean grid and KPI tiles from the ICSA poster with the green
+nature identity of EcoLogic, in the app's light theme (accent `#0b7a4b`, water `#0b6fa4`,
+traffic-light status colors). The example map and screens all show **the Upper Jordan
+sources around Kfar Blum and Amir**, where the Snir (Hatzbani), Dan and Hermon (Banias)
+meet to form the Jordan.
+
+## Layout (A1 portrait, 59.4 × 84 cm, 3 columns × 18.5 cm, 1.2 cm gutters)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ [logo]  NahalWatch — אקולוגיה בכף היד            [Braude]    │  title band 7 cm
+│ "האם אפשר להיכנס למים היום?"                                  │
+│ שקד מאלול · עדי פלד · אור אורבך  |  Advisor: <TBD>           │
+├────────────────────┬────────────────────┬────────────────────┤
+│ 1. הבעיה           │ 4. HERO: מפת הרמזור — כפר בלום / עמיר    │
+│  persona cards:    │  large screenshot of the map at the      │
+│  איתן (22) · מיכל   │  confluence + 3 phone mockups:           │
+│  (38) + quotes     │  map · station card (red, with "Fecal    │
+│                    │  coliforms 2,400 > 1,000") · updates     │  ~30 cm
+├────────────────────┤                                          │
+│ 2. הנתונים         │                                          │
+│  KPI tiles:        ├────────────────────┬────────────────────┤
+│  6,545 samples     │ 5. המודלים          │ 6. מודל מול שטח    │
+│  214 stations      │  logistic eq. +     │  backtest chart,   │
+│  47 streams        │  forecast strip;    │  "% correct light" │
+│  30 years          │  Lotka–Volterra     │  KPI tile          │
+├────────────────────┤  curve              │                    │
+│ 3. ארכיטקטורה      ├────────────────────┴────────────────────┤
+│  data-flow diagram │ 7. דרישות: FR (5) · NFR (5) — two lists  │
+│  Excel → JSON →    ├──────────────────────────────────────────┤
+│  PWA → device      │ 8. ממצאים · שאלות מחקר · מגבלות           │
+├────────────────────┴───────────────────┬──────────────────────┤
+│ footer: tech stack icons               │ QR → live demo  [QR] │  4 cm
+└────────────────────────────────────────┴──────────────────────┘
+```
+
+## Section content
+
+1. **The problem / personas**: Eitan (22, Haifa, hikes 2–3×/month, afraid of leptospirosis)
+   and Michal (38, Kiryat Tiv'on, 3 kids, wants a yes/no answer). One quote each from the
+   empathy maps.
+2. **The data**: KPI tiles pulled from `public/data/meta.json` (samples, stations, streams, years).
+3. **Architecture**: Excel → `build-data.mjs` → static JSON → Next.js PWA (offline service
+   worker) → phone home screen. No accounts; favorites and reports stay on the device (privacy NFR).
+4. **Hero**: map screenshot centered on Kfar Blum / Amir / the Jordan confluence, plus phone
+   mockups. One of them must be a red station card that spells out the bacteria, the value
+   and the threshold.
+5. **Models**: the logistic equation `dN/dt = rN(1−N/K)` with the 3-day forecast strip, and the
+   Lotka–Volterra bacteria/protozoa oscillation.
+6. **Model vs. field**: backtest chart for Hermon @ Kfar Szold (201 samples, 1996–2024) with the
+   "% correct traffic light" tile, which answers research question 4.
+7. **Requirements**: the 5 FRs and 5 NFRs from the design-thinking doc, with ✓ where implemented.
+8. **Findings & limitations**: seasonality (summer peak), share of northern stations in each
+   color, approximate station locations, latest sample is up to a year old, educational index
+   not an official ruling.
+
+## Assets to produce (from the running app)
+- [ ] Map screenshot at 1440×900, home view (Kfar Blum confluence), light theme
+- [ ] 3 phone screenshots at 390×844: map + red card, station detail, updates
+- [ ] Models page charts (logistic, LV, backtest) for station s734
+- [ ] QR code → deployed URL (after Vercel deploy)
+- [ ] Logos: app icon `public/icons/icon-512.png`, college logo
+
+## Open questions
+- Advisor name and college logo for the title band
+- Language: Hebrew (like the app) or English (like the examples)?
+- Deployed URL for the QR code
