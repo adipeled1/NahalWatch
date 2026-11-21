@@ -1,5 +1,8 @@
 # NahalWatch — Agent Instructions
 
+This folder (`nahalwatch-app/`) is the Next.js app. Project docs, the poster and the station-locations
+sheet live in `../documentation/`; the project overview is `../README.md`.
+
 NahalWatch is a public, no-login, news-style PWA that answers
 "is this stream safe to swim in today?" for Israeli streams, using ~30 years of
 monitoring samples (data/raw/*.xlsx) plus ecological models (logistic growth,
@@ -27,9 +30,10 @@ Lotka–Volterra). Hebrew, RTL, mobile-first; installable to the home screen.
   a threshold. A red/amber status must list every parameter, value and limit crossed.
 - Official station coordinates: `data/station-coords-official.json` (hand-reviewed matches to the
   Water Authority list in `data/official/`); everything else is an estimate in `data/station-coords.json`.
-- `npm run data` also writes `docs/station-locations.xlsx`.
-- Poster: `python docs/poster/build_poster.py` rebuilds `docs/poster/NahalWatch_poster.pptx` from
-  `template-ICSA.pptx`, the screenshots in `docs/poster/assets/`, and the data. Keep every shape's
+- `npm run data` also writes `../documentation/station-locations.xlsx`.
+- Poster (repo root): `python documentation/poster/build_poster.py` rebuilds
+  `documentation/poster/NahalWatch_poster.pptx` from `template-ICSA.pptx`, the screenshots in
+  `documentation/poster/assets/`, and the data. Keep every shape's
   width/height positive (PowerPoint rejects the file otherwise).
 - Colors come from the CSS tokens in `src/app/globals.css` (light + dark), used through
   the semantic Tailwind names (`bg-surface`, `text-danger`, …). No raw hex in components.

@@ -19,16 +19,20 @@
 
 ## הרצה
 
+כל הקוד נמצא בתיקייה `nahalwatch-app/`:
+
 ```bash
+cd nahalwatch-app
 npm install
 npm run dev
 ```
 
-עדכון נתונים: מחליפים את קובץ ה-Excel ב-`data/raw/` ומריצים `npm run data`.
+עדכון נתונים: מחליפים את קובץ ה-Excel ב-`nahalwatch-app/data/raw/` ומריצים `npm run data` (מתוך `nahalwatch-app/`).
+בניית הפוסטר מחדש (מתיקיית השורש): `python documentation/poster/build_poster.py`.
 
 ## איך נקבע הרמזור — לפי ערכים רשמיים בלבד
 
-ראו `RULES` ב-`src/lib/quality.ts`.
+ראו `RULES` ב-`nahalwatch-app/src/lib/quality.ts`.
 
 | צבע | מתי |
 |---|---|
@@ -47,26 +51,31 @@ npm run dev
 
 | מה | מקור | עדכון |
 |---|---|---|
-| דגימות הנחלים (`data/raw/*.xlsx`) | המשרד להגנת הסביבה — "נתונים גולמיים של תוצאות ניטור נחלים בשנים 1996-2025" (`stream-monitoring`) | דיגום פעמיים בשנה; מורידים את הקובץ המלא ומריצים `npm run data` |
-| נ״צ רשמיים (`data/official/`) | רשות המים — "רשימת תחנות הידרומטריות" (`hydro_station`), ITM | כמעט קבוע |
+| דגימות הנחלים (`nahalwatch-app/data/raw/*.xlsx`) | המשרד להגנת הסביבה — "נתונים גולמיים של תוצאות ניטור נחלים בשנים 1996-2025" (`stream-monitoring`) | דיגום פעמיים בשנה; מורידים את הקובץ המלא ומריצים `npm run data` |
+| נ״צ רשמיים (`nahalwatch-app/data/official/`) | רשות המים — "רשימת תחנות הידרומטריות" (`hydro_station`), ITM | כמעט קבוע |
 
 ה-API של data.gov.il (datastore) מחזיר רק 1,500 מתוך 6,545 השורות של מאגר הנחלים, ולכן משתמשים בקובץ המלא.
-מיקומי התחנות: 46 תחנות לפי תחנה הידרומטרית רשמית באותו גשר/מעיין (`data/station-coords-official.json`), השאר משוערות לפי שם (`data/station-coords.json`).
-טבלה מלאה לצפייה: `docs/station-locations.xlsx`.
+מיקומי התחנות: 46 תחנות לפי תחנה הידרומטרית רשמית באותו גשר/מעיין (`nahalwatch-app/data/station-coords-official.json`), השאר משוערות לפי שם (`nahalwatch-app/data/station-coords.json`).
+טבלה מלאה לצפייה: [`documentation/station-locations.xlsx`](documentation/station-locations.xlsx).
 
 ## מבנה
 
 ```
-data/raw/                 קובץ ה-Excel המקורי
-data/station-coords*.json מיקומי תחנות (רשמי / משוער)
-data/official/            רשימת התחנות הרשמית של רשות המים
-scripts/build-data.mjs    Excel → public/data/*.json
-src/lib/quality.ts        רמזור לפי ערכים רשמיים
-src/lib/models.ts         לוגיסטי, לוטקה–וולטרה, backtest
-src/components/…          Map, Station, Updates, Streams, Models, Shell, ui
-public/sw.js              Service worker — עבודה בקליטה חלשה
-docs/poster/              הפוסטר (pptx + pdf) והסקריפט שבונה אותו
-docs/station-locations.xlsx  שם תחנה ↔ נ״צ רשמי
+NahalWatch/
+├── README.md                        ← אתם כאן (סקירה)
+├── documentation/
+│   ├── poster/                      ← הפוסטר (pptx + pdf), התבנית, הצילומים והסקריפט שבונה אותו
+│   ├── poster-plan.md
+│   └── station-locations.xlsx       ← שם תחנה ↔ נ״צ רשמי / משוער
+└── nahalwatch-app/                  ← אפליקציית Next.js (PWA)
+    ├── data/raw/                    ← קובץ ה-Excel הרשמי
+    ├── data/official/               ← רשימת התחנות הרשמית של רשות המים
+    ├── data/station-coords*.json    ← מיקומי תחנות (רשמי / משוער)
+    ├── scripts/build-data.mjs       ← Excel → public/data/*.json
+    ├── src/lib/quality.ts           ← רמזור לפי ערכים רשמיים
+    ├── src/lib/models.ts            ← לוגיסטי, לוטקה–וולטרה, backtest
+    ├── src/components/…             ← Map, Station, Updates, Streams, Models, Shell, ui
+    └── public/sw.js                 ← Service worker — עבודה בקליטה חלשה
 ```
 
 צוות: שקד מאלול · עדי פלד · אור אורבך · מנחה: Dr. Naomi Unkelos-Shpigel

@@ -1,12 +1,12 @@
 """
-Builds docs/poster/NahalWatch_poster.pptx (A1 portrait, 59.4 x 84.1 cm).
+Builds documentation/poster/NahalWatch_poster.pptx (A1 portrait, 59.4 x 84.1 cm).
 
 Starts from a copy of the ICSA example poster (template-ICSA.pptx) to keep its
 Braude title band and logo, removes the rest, and lays out NahalWatch content.
-Every number on the poster is computed here from public/data — nothing typed by hand.
-Screenshots come from docs/poster/assets (captured from the running app).
+Every number on the poster is computed here from nahalwatch-app/public/data — nothing typed by hand.
+Screenshots come from documentation/poster/assets (captured from the running app).
 
-    python docs/poster/build_poster.py
+    python documentation/poster/build_poster.py
 """
 from __future__ import annotations
 
@@ -25,7 +25,8 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Cm, Pt
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[2]  # repo root
+APP = ROOT / "nahalwatch-app"
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE / "assets"
 OUT = HERE / "NahalWatch_poster.pptx"
@@ -49,9 +50,9 @@ WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 HEAD_FONT, BODY_FONT = "Georgia", "Calibri"  # same pairing as the template
 
 # ── Data & stats (mirrors RULES in src/lib/quality.ts) ───────────────────────
-stations = json.loads((ROOT / "public/data/stations.json").read_text(encoding="utf-8"))
-meta = json.loads((ROOT / "public/data/meta.json").read_text(encoding="utf-8"))
-series_dir = ROOT / "public/data/series"
+stations = json.loads((APP / "public/data/stations.json").read_text(encoding="utf-8"))
+meta = json.loads((APP / "public/data/meta.json").read_text(encoding="utf-8"))
+series_dir = APP / "public/data/series"
 
 # (key, amber_above, red_above) — MoH for fecal coliforms; Inbar stream-discharge avg / max for the rest.
 LIMITS = [
@@ -250,7 +251,7 @@ def picture(path, x, y, w=None, h=None, name=None, border=True):
 # ── Title band ───────────────────────────────────────────────────────────────
 logo.left, logo.top = Cm(1.2), Cm(2.2)
 logo.width, logo.height = Cm(13.0), int(Cm(13.0) * 237 / 1004)
-icon = picture(ROOT / "public/icons/icon-512.png", SW - Cm(1.2) - Cm(5.6), Cm(1.4), Cm(5.6), Cm(5.6), name="App icon", border=False)
+icon = picture(APP / "public/icons/icon-512.png", SW - Cm(1.2) - Cm(5.6), Cm(1.4), Cm(5.6), Cm(5.6), name="App icon", border=False)
 text(Cm(15.2), Cm(0.9), Cm(36.0), Cm(2.6), [[("NahalWatch", {"size": 84, "bold": True, "font": HEAD_FONT})]],
      color=WHITE, align=PP_ALIGN.CENTER, name="Title")
 text(Cm(15.2), Cm(3.75), Cm(36.0), Cm(1.4),

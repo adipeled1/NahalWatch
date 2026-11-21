@@ -226,8 +226,9 @@ const wsHydro = XLSX.utils.json_to_sheet(hydro.stations.map((h) => ({
 wsHydro['!cols'] = [10, 34, 34, 14, 10, 10, 10, 12, 12].map((wch) => ({ wch }));
 wsHydro['!views'] = [{ RTL: true }];
 XLSX.utils.book_append_sheet(wbOut, wsHydro, 'רשות המים - תחנות רשמיות');
-fs.mkdirSync(path.join(ROOT, 'docs'), { recursive: true });
-XLSX.writeFile(wbOut, path.join(ROOT, 'docs', 'station-locations.xlsx'));
+const DOC_DIR = path.join(ROOT, '..', 'documentation');
+fs.mkdirSync(DOC_DIR, { recursive: true });
+XLSX.writeFile(wbOut, path.join(DOC_DIR, 'station-locations.xlsx'));
 
 console.log(`✓ ${meta.stationCount} stations · ${meta.streamCount} streams · ${meta.rowCount} rows (${skipped} skipped)`);
 console.log(`  ${meta.firstSample} → ${meta.lastSample}`);
