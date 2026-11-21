@@ -24,23 +24,40 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
     return keys;
   }, [samples, expert]);
 
+  // Ranges count back from the station's last sample.
+  const last = samples.length ? new Date(samples[samples.length - 1].d) : new Date();
+  const pointsIn = (k: string, years: number) => {
+    const cutoff = new Date(last);
+    cutoff.setFullYear(cutoff.getFullYear() - years);
+    return samples.filter((s) => s.v[k] != null && new Date(s.d) >= cutoff).length;
+  };
+  // Default is 10 years; if that window has fewer than 2 points (no line), show the whole history.
+  const rangeFor = (k: string | undefined): (typeof RANGES)[number]['id'] => (k && pointsIn(k, 10) < 2 ? 'all' : '10');
+
   const [param, setParam] = useState<string>('Fcoli');
-  const [range, setRange] = useState<(typeof RANGES)[number]['id']>('10');
   const key = available.includes(param) ? param : available[0];
+  const [range, setRange] = useState<(typeof RANGES)[number]['id']>(() => rangeFor(key));
+  const [autoAll, setAutoAll] = useState(() => rangeFor(key) === 'all');
   const info = paramInfo(key ?? 'Fcoli');
   const rule = RULES.find((r) => r.key === key);
   const log = LOG_KEYS.has(key ?? '');
 
+  const pickParam = (k: string) => {
+    const r = rangeFor(k);
+    setParam(k);
+    setRange(r);
+    setAutoAll(r === 'all');
+  };
+
   const data = useMemo(() => {
     if (!key) return [];
     const years = RANGES.find((r) => r.id === range)!.years;
-    const last = samples.length ? new Date(samples[samples.length - 1].d) : new Date();
     const cutoff = new Date(last);
     cutoff.setFullYear(cutoff.getFullYear() - years);
     return samples
       .filter((s) => s.v[key] != null && new Date(s.d) >= cutoff)
       .map((s) => ({ t: new Date(s.d).getTime(), v: log ? Math.max(1, s.v[key]) : s.v[key] }));
-  }, [samples, key, range, log]);
+  }, [samples, key, range, log, last]);
 
   if (!key) return <p className="p-4 text-sm text-muted">אין מספיק נתונים לגרף.</p>;
 
@@ -52,17 +69,22 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
     <div>
       <div className="scrollbar-none mb-3 flex gap-1.5 overflow-x-auto px-2">
         {available.map((k) => (
-          <Chip key={k} active={k === key} onClick={() => setParam(k)}>{paramInfo(k).he}</Chip>
+          <Chip key={k} active={k === key} onClick={() => pickParam(k)}>{paramInfo(k).he}</Chip>
         ))}
       </div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2">
-        <p className="max-w-xl text-xs text-muted">{info.explain}</p>
+        <div className="max-w-xl text-xs text-muted">
+          <p>{info.explain}</p>
+          {autoAll && range === 'all' && (
+            <p className="mt-1 font-semibold text-caution">אין מספיק מדידות ב-10 השנים האחרונות — מוצג כל הטווח.</p>
+          )}
+        </div>
         <div className="flex gap-1">
           {RANGES.map((r) => (
             <button
               key={r.id}
               type="button"
-              onClick={() => setRange(r.id)}
+              onClick={() => { setRange(r.id); setAutoAll(false); }}
               className={`rounded-md px-2 py-1 text-xs font-semibold ${range === r.id ? 'bg-surface-hover text-fg' : 'text-muted'}`}
             >
               {r.label}
