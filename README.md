@@ -1,6 +1,6 @@
 # 💧 NahalWatch — Is the Stream Safe Today?
 
-**🚀 Live Demo:** *coming soon (Vercel)* · installable on any phone as a web app (PWA)
+**🚀 Live Demo:** *coming soon (Vercel)* · installable on any phone as a web app ([PWA](#-what-is-a-pwa))
 
 > **This is a student academic project.** The traffic light is computed from the latest sample in an official
 > dataset and does not replace current notices from the Ministry of Health or the Nature and Parks Authority.
@@ -37,6 +37,27 @@ warning spells out which parameter crossed which limit, for example
 - **📈 Ecological Models** — A 3-day bacteria forecast (logistic growth), a Lotka–Volterra bacteria/grazer simulator, monthly seasonality, and a "model vs. field" backtest.
 - **📰 Updates Feed** — The latest samples from all stations as a news feed, with a regional status ring.
 - **📱 Installable & Offline** — "Add to Home Screen" on iPhone and Android, full-screen, and keeps working with weak reception.
+
+---
+
+## 📱 What Is a PWA?
+
+A **Progressive Web App (PWA)** is a website that behaves like a phone app. NahalWatch is one:
+
+- **Home-screen icon** — install it straight from the browser, with no App Store or Google Play:
+  - **iPhone (Safari):** Share → *Add to Home Screen*
+  - **Android (Chrome):** ⋮ menu → *Install app* / *Add to Home screen*
+- **Full screen** — opens without the address bar, like a native app.
+- **Works with weak or no reception** — pages and data you have already viewed are cached on the phone.
+- **Always up to date** — every new deployment reaches all users immediately; there is nothing to update.
+
+Three pieces make it a PWA:
+
+| Piece | What it does | In this repo |
+|---|---|---|
+| Web app manifest | App name, icons, colors, full-screen mode | [`src/app/manifest.ts`](nahalwatch-app/src/app/manifest.ts) |
+| Service worker | Caches pages, data and map tiles for offline use | [`public/sw.js`](nahalwatch-app/public/sw.js) |
+| HTTPS | Required by browsers to install the app | provided by the host (Vercel) |
 
 ---
 
