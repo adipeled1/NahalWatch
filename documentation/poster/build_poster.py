@@ -362,7 +362,7 @@ ph_h = Cm(16.8); ph_w = int(ph_h * 1170 / 2532); ph_gap = Cm(1.6)
 row_w = 3 * ph_w + 2 * ph_gap
 px0 = cx + int((cw - row_w) / 2)
 phones = [
-    ("phone-map-card.png", "Map + station card"),
+    ("phone-map.png", "Traffic-light map"),
     ("phone-station.png", "Station page"),
     ("phone-updates.png", "Updates feed"),
 ]
