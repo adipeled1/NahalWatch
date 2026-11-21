@@ -14,13 +14,15 @@ const RANGES = [
 
 const dateFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'short', year: 'numeric' });
 const LOG_KEYS = new Set(['Fcoli', 'Ecoli', 'Fstrp', 'Coli', 'TOTB']);
+/** Same minimum everywhere: a parameter needs ≥ 3 points to get a button, and the 10-year view needs ≥ 3 to stay. */
+const MIN_POINTS = 3;
 
 export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: boolean }) {
   // Parameters this station actually has (≥ 3 values), featured first.
   const available = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const s of samples) for (const k of Object.keys(s.v)) counts[k] = (counts[k] ?? 0) + 1;
-    const keys = PARAMS.filter((p) => (counts[p.key] ?? 0) >= 3 && (expert || p.featured)).map((p) => p.key);
+    const keys = PARAMS.filter((p) => (counts[p.key] ?? 0) >= MIN_POINTS && (expert || p.featured)).map((p) => p.key);
     return keys;
   }, [samples, expert]);
 
@@ -31,8 +33,8 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
     cutoff.setFullYear(cutoff.getFullYear() - years);
     return samples.filter((s) => s.v[k] != null && new Date(s.d) >= cutoff).length;
   };
-  // Default is 10 years; if that window has fewer than 2 points (no line), show the whole history.
-  const rangeFor = (k: string | undefined): (typeof RANGES)[number]['id'] => (k && pointsIn(k, 10) < 2 ? 'all' : '10');
+  // Default is 10 years; if that window has fewer than MIN_POINTS, show the whole history.
+  const rangeFor = (k: string | undefined): (typeof RANGES)[number]['id'] => (k && pointsIn(k, 10) < MIN_POINTS ? 'all' : '10');
 
   const [param, setParam] = useState<string>('Fcoli');
   const key = available.includes(param) ? param : available[0];
