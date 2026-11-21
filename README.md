@@ -26,9 +26,6 @@ Environmental Protection, into a green / amber / red map. Every color follows **
 warning spells out which parameter crossed which limit, for example
 *"Fecal coliforms: 950 cfu/100 ml, above the 400 limit (Ministry of Health)"*.
 
-The app was designed through a design-thinking process around two personas: Eitan, a 22-year-old hiker who
-wants reliable, up-to-date data, and Michal, a mother of three who wants a clear yes-or-no answer.
-
 ---
 
 ## ✨ Features

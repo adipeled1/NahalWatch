@@ -47,7 +47,7 @@ export default function StationSummary({
         </div>
       </div>
 
-      {/* One-sentence answer (persona: "can I go in with the kids today?") */}
+      {/* One-sentence answer first, then the details */}
       <div className={`rounded-xl border px-3.5 py-3 ${tone.bg} ${tone.border}`}>
         <div className={`flex items-center gap-2 text-base font-extrabold ${tone.text}`}>
           <tone.Icon className="size-5" aria-hidden />

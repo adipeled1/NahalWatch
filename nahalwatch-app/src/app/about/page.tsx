@@ -93,7 +93,7 @@ export default function AboutPage() {
           <div className="px-4 pb-4 text-sm leading-relaxed">
             <p>שקד מאלול · עדי פלד · אור אורבך</p>
             <p className="mt-1 text-muted">מנחה: <bdi dir="ltr">Dr. Naomi Unkelos-Shpigel</bdi></p>
-            <p className="mt-1 text-xs text-muted">פרויקט במסגרת אשכול מעבדות — אפליקציה מבוססת ענן לחוויית מידע אקולוגי, נבנתה בתהליך חשיבה עיצובית סביב שתי פרסונות: איתן, מטייל צעיר, ומיכל, אמא לשלושה.</p>
+            <p className="mt-1 text-xs text-muted">פרויקט במסגרת אשכול מעבדות — אפליקציה מבוססת ענן לחוויית מידע אקולוגי, שנבנתה בתהליך חשיבה עיצובית.</p>
           </div>
         </Card>
       </div>
