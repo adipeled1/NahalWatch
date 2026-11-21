@@ -7,7 +7,7 @@
 > On-site "no bathing" signs always take precedence.
 
 <p align="center">
-  <img src="documentation/poster/assets/phone-map-card.png" width="230" alt="Map with a station card showing why the water is red" />
+  <img src="documentation/poster/assets/phone-map.png" width="230" alt="Traffic-light map of the Upper Jordan sources by Kfar Blum and Amir" />
   &nbsp;
   <img src="documentation/poster/assets/phone-station.png" width="230" alt="Station page with the official limits that were crossed" />
   &nbsp;
@@ -76,9 +76,6 @@ estimated from the station name. The full name ↔ coordinate table is in
 NahalWatch/
 ├── README.md                        ← you are here (overview)
 ├── documentation/
-│   ├── poster/                      ← A1 poster (pptx + pdf), template, screenshots, build script
-│   ├── poster-plan.md               ← poster layout and content plan
-│   └── station-locations.xlsx       ← our station names ↔ official / estimated coordinates
 └── nahalwatch-app/                  ← Next.js application (PWA)
     ├── data/
     │   ├── raw/                     — the official monitoring spreadsheet
