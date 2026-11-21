@@ -25,7 +25,7 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
   }, [samples, expert]);
 
   // Ranges count back from the station's last sample.
-  const last = samples.length ? new Date(samples[samples.length - 1].d) : new Date();
+  const last = useMemo(() => (samples.length ? new Date(samples[samples.length - 1].d) : new Date()), [samples]);
   const pointsIn = (k: string, years: number) => {
     const cutoff = new Date(last);
     cutoff.setFullYear(cutoff.getFullYear() - years);
