@@ -1,81 +1,158 @@
-# NahalWatch
+# 💧 NahalWatch — Is the Stream Safe Today?
 
-**האם אפשר להיכנס למים היום?** מפת רמזור לאיכות המים בנחלי ישראל, מבוססת על
-6,545 דגימות שדה ומעבדה מ-214 תחנות ניטור (1995–2025) ועל מודלים אקולוגיים.
+**🚀 Live Demo:** *coming soon (Vercel)* · installable on any phone as a web app (PWA)
 
-אפליקציית ווב (PWA) שאפשר "להתקין" על מסך הבית ב-iPhone (Safari ← שיתוף ← הוספה למסך הבית)
-וב-Android. אין משתמשים או הרשמה — זה אתר חדשות פתוח לכולם.
+> **This is a student academic project.** The traffic light is computed from the latest sample in an official
+> dataset and does not replace current notices from the Ministry of Health or the Nature and Parks Authority.
+> On-site "no bathing" signs always take precedence.
 
-## מסכים
+<p align="center">
+  <img src="documentation/poster/assets/phone-map-card.png" width="230" alt="Map with a station card showing why the water is red" />
+  &nbsp;
+  <img src="documentation/poster/assets/phone-station.png" width="230" alt="Station page with the official limits that were crossed" />
+  &nbsp;
+  <img src="documentation/poster/assets/phone-updates.png" width="230" alt="Updates feed of the latest samples" />
+</p>
 
-| מסך | מה יש בו |
+---
+
+## 📋 Overview
+
+NahalWatch is a public, no-login web app that answers one question for hikers and families in Israel:
+**can I go into the water at this stream today?**
+
+It turns **6,545 field and lab samples from 214 monitoring stations (1995–2025)**, published by the Ministry of
+Environmental Protection, into a green / amber / red map. Every color follows **official Israeli limits**, and every
+warning spells out which parameter crossed which limit, for example
+*"Fecal coliforms: 950 cfu/100 ml, above the 400 limit (Ministry of Health)"*.
+
+The app was designed through a design-thinking process around two personas: Eitan, a 22-year-old hiker who
+wants reliable, up-to-date data, and Michal, a mother of three who wants a clear yes-or-no answer.
+
+---
+
+## ✨ Features
+
+- **🗺️ Traffic-Light Map** — Every station on a map of Israel, opening on the Upper Jordan sources by Kfar Blum and Amir, where the Snir, Dan and Hermon meet. Filter by region and status; shareable links (`/?station=<id>`).
+- **🚦 Official Limits Only** — Colors come from the Ministry of Health bathing limit for streams and the Inbar regulations (2010). Parameters without an official limit are shown but never change the color.
+- **🔎 "Why is it red?"** — Each amber or red card lists every exceeded parameter, its measured value, the limit, and its source.
+- **📍 Station Pages** — The latest values, a history chart with the limits drawn in, a full lab table, official ITM / GPS coordinates where available, and navigation with Waze.
+- **📈 Ecological Models** — A 3-day bacteria forecast (logistic growth), a Lotka–Volterra bacteria/grazer simulator, monthly seasonality, and a "model vs. field" backtest.
+- **📰 Updates Feed** — The latest samples from all stations as a news feed, with a regional status ring.
+- **📱 Installable & Offline** — "Add to Home Screen" on iPhone and Android, full-screen, and keeps working with weak reception.
+
+---
+
+## 🚦 How the Traffic Light Works
+
+| Color | When |
 |---|---|
-| **מפה** (`/`) | מפת רמזור (ירוק/צהוב/אדום) של כל התחנות, ברירת מחדל: מפגש השניר, הדן והחרמון ליד כפר בלום ועמיר. סינון לפי אזור וסטטוס. לחיצה על תחנה פותחת כרטיס עם תשובה במשפט אחד, **ובמצב צהוב/אדום — כל מדד שחרג, כמה נמדד ומה הערך הרשמי**. קישור ישיר: `/?station=<id>`. |
-| **עדכונים** (`/updates`) | פיד חדשות של הדגימות האחרונות וטבעת "מצב כללי באזור". |
-| **נחלים** (`/streams`) | כל הנחלים והתחנות, עם חיפוש וסינון. |
-| **תחנה** (`/station/[id]`) | תשובה + פירוט חריגות, תחזית ל-3 ימים, המדידות האחרונות, גרף היסטוריה עם קווי סף, טבלת כל הפרמטרים, נ״צ (רשמי או משוער) וניווט. |
-| **מודלים** (`/models`) | גידול לוגיסטי, לוטקה–וולטרה, עונתיות, ו"מודל מול שטח" (backtest). |
-| **מידע** (`/about`) | מקור הנתונים, ספי הרמזור, התקנה בטלפון, הבהרה. |
+| 🟢 **Green** | Every measured parameter is within the official limits |
+| 🟡 **Amber** | Fecal coliforms 200–400 /100 ml, **or** a parameter above the Inbar *monthly-average* value |
+| 🔴 **Red** | Fecal coliforms above 400 /100 ml, **or** a parameter above the Inbar *maximum* value, **or** dissolved oxygen below 3 mg/l / pH outside 7–8.5 |
 
-## הרצה
+**Sources**
+1. Ministry of Health, Environmental Health Department — *2024 Activity Report, Water Quality* (May 2025): streams with public water contact, up to 400 fecal coliforms per 100 ml.
+2. Ministry of Health, Chief Engineer's guidelines (10 March 2010) — seasonal geometric mean up to 200, maximum 400.
+3. *Public Health Regulations (Effluent Quality Standards and Rules for Sewage Treatment), 2010* ("Inbar regulations"), First Schedule — quality required for discharge to streams.
 
-כל הקוד נמצא בתיקייה `nahalwatch-app/`:
+All limits live in one place: [`nahalwatch-app/src/lib/quality.ts`](nahalwatch-app/src/lib/quality.ts).
 
-```bash
-cd nahalwatch-app
-npm install
-npm run dev
-```
+---
 
-עדכון נתונים: מחליפים את קובץ ה-Excel ב-`nahalwatch-app/data/raw/` ומריצים `npm run data` (מתוך `nahalwatch-app/`).
-בניית הפוסטר מחדש (מתיקיית השורש): `python documentation/poster/build_poster.py`.
+## 🗄️ Data Sources
 
-## איך נקבע הרמזור — לפי ערכים רשמיים בלבד
-
-ראו `RULES` ב-`nahalwatch-app/src/lib/quality.ts`.
-
-| צבע | מתי |
-|---|---|
-| 🟢 ירוק | כל המדדים שנבדקו בתוך הערכים הרשמיים |
-| 🟡 צהוב | קוליפורמים צואתיים 200–400 ל-100 מ״ל, או מדד מעל "ערך מרבי לממוצע חודשי" בתקנות ענבר |
-| 🔴 אדום | קוליפורמים צואתיים מעל 400 ל-100 מ״ל, או מדד מעל "ערך מרבי" בתקנות ענבר, או חמצן מומס < 3 / pH מחוץ ל-7–8.5 |
-
-מקורות:
-1. משרד הבריאות, המחלקה לבריאות הסביבה — דו״ח פעילות 2024 (מאי 2025): נחלים עם מגע של הציבור — עד 400 קוליפורמים צואתיים ל-100 מ״ל.
-2. הנחיות המהנדס הראשי, משרד הבריאות (10.3.2010) — ממוצע גיאומטרי עונתי עד 200, מקסימום 400.
-3. תקנות בריאות העם (תקני איכות מי קולחין וכללים לטיהור שפכים), התש״ע-2010 — התוספת הראשונה, "האיכות הנדרשת להזרמה לנחלים".
-
-מדדים בלי ערך רשמי (אי-קולי, טמפרטורה וכו׳) מוצגים אבל לא משפיעים על הצבע.
-
-## מקורות נתונים (data.gov.il)
-
-| מה | מקור | עדכון |
+| Data | Source (data.gov.il) | Updated |
 |---|---|---|
-| דגימות הנחלים (`nahalwatch-app/data/raw/*.xlsx`) | המשרד להגנת הסביבה — "נתונים גולמיים של תוצאות ניטור נחלים בשנים 1996-2025" (`stream-monitoring`) | דיגום פעמיים בשנה; מורידים את הקובץ המלא ומריצים `npm run data` |
-| נ״צ רשמיים (`nahalwatch-app/data/official/`) | רשות המים — "רשימת תחנות הידרומטריות" (`hydro_station`), ITM | כמעט קבוע |
+| Stream samples | Ministry of Environmental Protection — *Raw stream monitoring results 1996–2025* (`stream-monitoring`) | Sampled twice a year (spring and autumn) |
+| Official station coordinates | Water Authority — *List of hydrometric stations* (`hydro_station`), ITM grid | Rarely changes |
 
-ה-API של data.gov.il (datastore) מחזיר רק 1,500 מתוך 6,545 השורות של מאגר הנחלים, ולכן משתמשים בקובץ המלא.
-מיקומי התחנות: 46 תחנות לפי תחנה הידרומטרית רשמית באותו גשר/מעיין (`nahalwatch-app/data/station-coords-official.json`), השאר משוערות לפי שם (`nahalwatch-app/data/station-coords.json`).
-טבלה מלאה לצפייה: [`documentation/station-locations.xlsx`](documentation/station-locations.xlsx).
+46 stations are placed at the matching Water Authority station (same bridge or spring), and the rest are
+estimated from the station name. The full name ↔ coordinate table is in
+[`documentation/station-locations.xlsx`](documentation/station-locations.xlsx).
 
-## מבנה
+---
+
+## 🗂️ Repository Structure
 
 ```
 NahalWatch/
-├── README.md                        ← אתם כאן (סקירה)
+├── README.md                        ← you are here (overview)
 ├── documentation/
-│   ├── poster/                      ← הפוסטר (pptx + pdf), התבנית, הצילומים והסקריפט שבונה אותו
-│   ├── poster-plan.md
-│   └── station-locations.xlsx       ← שם תחנה ↔ נ״צ רשמי / משוער
-└── nahalwatch-app/                  ← אפליקציית Next.js (PWA)
-    ├── data/raw/                    ← קובץ ה-Excel הרשמי
-    ├── data/official/               ← רשימת התחנות הרשמית של רשות המים
-    ├── data/station-coords*.json    ← מיקומי תחנות (רשמי / משוער)
-    ├── scripts/build-data.mjs       ← Excel → public/data/*.json
-    ├── src/lib/quality.ts           ← רמזור לפי ערכים רשמיים
-    ├── src/lib/models.ts            ← לוגיסטי, לוטקה–וולטרה, backtest
-    ├── src/components/…             ← Map, Station, Updates, Streams, Models, Shell, ui
-    └── public/sw.js                 ← Service worker — עבודה בקליטה חלשה
+│   ├── poster/                      ← A1 poster (pptx + pdf), template, screenshots, build script
+│   ├── poster-plan.md               ← poster layout and content plan
+│   └── station-locations.xlsx       ← our station names ↔ official / estimated coordinates
+└── nahalwatch-app/                  ← Next.js application (PWA)
+    ├── data/
+    │   ├── raw/                     — the official monitoring spreadsheet
+    │   ├── official/                — Water Authority station list (ITM)
+    │   └── station-coords*.json     — official and estimated station locations
+    ├── scripts/                     — data pipeline (Excel → JSON) and icon generator
+    ├── public/
+    │   ├── data/                    — generated station index + per-station history
+    │   └── sw.js                    — service worker (offline)
+    └── src/
+        ├── app/                     — pages: map, updates, streams, station, models, about
+        ├── components/              — Map, Station, Updates, Streams, Models, Shell, ui
+        └── lib/                     — traffic-light rules, ecological models, data access
 ```
 
-צוות: שקד מאלול · עדי פלד · אור אורבך · מנחה: Dr. Naomi Unkelos-Shpigel
+---
+
+## 🛠️ Tech Stack
+
+- **Next.js** (App Router) + React + TypeScript + **Tailwind CSS**
+- **Leaflet** + **OpenStreetMap** — interactive map (Esri imagery for the satellite layer)
+- **Recharts** — history, seasonality and model charts
+- **SheetJS (`xlsx`)** — spreadsheet import and the locations sheet
+- **Vitest** — unit tests for the traffic-light rules and the models
+- **Vercel** — deployment *(planned)*
+
+No backend and no accounts: the data is pre-built into static JSON, so pages load fast and work offline.
+
+---
+
+## 🚀 Getting Started
+
+1. **Install dependencies**:
+   ```bash
+   cd nahalwatch-app
+   npm install
+   ```
+
+2. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000).
+
+3. **Update the data** when a new version is published on data.gov.il: replace the file in
+   `nahalwatch-app/data/raw/` and run:
+   ```bash
+   npm run data
+   ```
+
+4. **Check everything** (lint + tests + production build):
+   ```bash
+   npm run verify
+   ```
+
+To rebuild the poster from the repository root, run `python documentation/poster/build_poster.py`.
+
+---
+
+## 👥 Contributors
+
+- [ororbach](https://github.com/ororbach) — Or Orbach
+- [adipeled1](https://github.com/adipeled1) — Adi Peled
+- [shakedm341-lang](https://github.com/shakedm341-lang) — Shaked Malul
+
+---
+
+## 🎓 Project Context
+
+| | |
+|---|---|
+| Institution | Braude College of Engineering, Karmiel, Israel |
+| Advisor | Dr. Naomi Unkelos-Shpigel |
+| Data | Ministry of Environmental Protection; Water Authority (data.gov.il) |
