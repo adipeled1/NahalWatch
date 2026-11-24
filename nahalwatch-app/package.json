@@ -5,6 +5,7 @@
   "scripts": {
     "data": "node scripts/build-data.mjs",
     "icons": "node scripts/build-icons.mjs",
+    "papers": "node scripts/build-papers.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
