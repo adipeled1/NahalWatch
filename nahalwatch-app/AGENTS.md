@@ -16,6 +16,7 @@ Lotka–Volterra). Hebrew, RTL, mobile-first; installable to the home screen.
 ## Commands
 - `npm run data` — rebuild `public/data/*` from the spreadsheet in `data/raw/`
 - `npm run icons` — regenerate PWA / iOS icons
+- `npm run papers` — rebuild `public/data/papers.json` (passages + APA) from `public/papers/*.pdf` (needs `pdftotext`)
 - `npm run dev` · `npm run build` · `npm run lint` · `npm test`
 - `npm run verify` — lint + tests + build
 
@@ -43,3 +44,10 @@ Lotka–Volterra). Hebrew, RTL, mobile-first; installable to the home screen.
 - Leaflet must only load via `next/dynamic({ ssr: false })` (see `MapScreen.tsx`).
 - Mobile grids use `grid-cols-1` so wide children can't push the page past the viewport.
 - Allowed external hosts are listed in the CSP in `next.config.mjs`; add new ones there.
+- "Ask the papers" (`src/components/PapersChat/`, `src/lib/papers.ts`): retrieval (BM25) runs in the browser
+  and always shows verbatim passages from the PDFs with APA citation + page. Generation is optional:
+  `src/app/api/ask/route.ts` + `src/lib/answer.ts` call Gemini only when `GEMINI_API_KEY` is set (server-side
+  env var, optional `GEMINI_MODEL`), using the server's own copy of the passages the client found.
+  Whether a key exists is decided at build time in `layout.tsx` (`canWriteAnswers`, a boolean only), so with
+  no key the chat never calls the server; on any Gemini error the reply is `{ mode: 'quotes' }`.
+  Paper metadata (APA) lives in `scripts/build-papers.mjs`; Hebrew → English terms in `src/lib/hebrewTerms.ts`.

@@ -6,6 +6,7 @@ import { Bell, FlaskConical, Info, Map as MapIcon, Moon, Sun, Waves } from 'luci
 import type { ReactNode } from 'react';
 import { META } from '@/lib/data';
 import { useTheme } from '@/lib/storage';
+import PapersChat from '@/components/PapersChat/PapersChat';
 
 const NAV = [
   { href: '/', label: 'מפה', Icon: MapIcon },
@@ -18,7 +19,7 @@ const NAV = [
 const isActive = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href)) ||
   (href === '/streams' && path.startsWith('/station'));
 
-export default function AppShell({ children }: { children: ReactNode }) {
+export default function AppShell({ children, canWriteAnswers = false }: { children: ReactNode; canWriteAnswers?: boolean }) {
   const path = usePathname();
   const [theme, toggleTheme] = useTheme();
   const isMap = path === '/';
@@ -104,6 +105,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </ul>
         </nav>
       </div>
+
+      {/* "Ask the papers": floating button + chat panel, on every page */}
+      <PapersChat canWriteAnswers={canWriteAnswers} />
     </div>
   );
 }
