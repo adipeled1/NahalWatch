@@ -149,8 +149,9 @@ No accounts: the data is pre-built into static JSON, so pages load fast and work
    ```
 
 4. **Written answers in "Ask the papers"** (optional): copy `nahalwatch-app/.env.example` to `.env.local` and set
-   `GEMINI_API_KEY` (a free key from Google AI Studio). On Vercel, add it under Project → Settings → Environment Variables.
-   The key stays on the server. Without it the chat shows the retrieved quotes only.
+   `GEMINI_API_KEY` (a free key from Google AI Studio). On Vercel, add it under Project → Settings → Environment Variables
+   and redeploy (the choice is made at build time). The key stays on the server. Without it the chat shows the retrieved
+   quotes only and never calls the server; with a bad key or a Gemini error it falls back to quotes only.
 
 5. **Check everything** (lint + tests + production build):
    ```bash

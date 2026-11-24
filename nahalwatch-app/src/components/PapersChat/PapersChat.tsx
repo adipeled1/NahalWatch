@@ -5,8 +5,11 @@ import { buildIndex, highlight, search, type PapersIndex, type SearchHit, type S
 import { splitCitations, type AskResponse } from '@/lib/answer';
 
 // "Ask the papers". Retrieval always runs in the browser: BM25 over passages from the PDFs in
-// /public/papers, shown verbatim (works offline). If the server has a Gemini key, /api/ask also
-// writes a short answer from those same passages; without a key the chat is quotes-only.
+// /public/papers, shown verbatim (works offline). `canWriteAnswers` is decided at build time from
+// GEMINI_API_KEY (see layout.tsx):
+// - false: the chat never calls the server; quotes only.
+// - true: /api/ask writes a short answer from those same passages. If that fails (bad key, quota,
+//   timeout) the reply is quotes-only and the chat stops promising written answers.
 
 const SUGGESTIONS = [
   'איך גשם משפיע על חיידקים צואתיים בנחל?',
@@ -21,19 +24,6 @@ type Answer = { status: 'loading' } | { status: 'done'; text: string } | { statu
 type Message =
   | { id: number; role: 'user'; text: string }
   | { id: number; role: 'bot'; result: SearchResult; answer?: Answer };
-
-// Whether the server can write answers (GEMINI_API_KEY is set). Asked once per page load.
-let generationPromise: Promise<boolean> | null = null;
-function checkGeneration() {
-  generationPromise ??= fetch('/api/ask', { cache: 'no-store' })
-    .then((r) => (r.ok ? r.json() : { generation: false }))
-    .then((j: { generation?: boolean }) => Boolean(j.generation))
-    .catch(() => {
-      generationPromise = null; // offline: try again next time
-      return false;
-    });
-  return generationPromise;
-}
 
 async function fetchAnswer(question: string, ids: number[]): Promise<string | null> {
   try {
@@ -62,21 +52,21 @@ function loadIndex() {
   return indexPromise;
 }
 
-export default function PapersChat() {
+export default function PapersChat({ canWriteAnswers = false }: { canWriteAnswers?: boolean }) {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState<PapersIndex | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [generation, setGeneration] = useState<boolean | null>(null);
+  // Turns false after a failed answer, so the header stops promising written answers.
+  const [writing, setWriting] = useState(canWriteAnswers);
   const lastQuestion = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     loadIndex().then(setIndex, () => setFailed(true));
-    checkGeneration().then(setGeneration);
     if (matchMedia('(min-width: 1024px)').matches) inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     window.addEventListener('keydown', onKey);
@@ -109,13 +99,13 @@ export default function PapersChat() {
         setIndex(idx);
         const result = search(idx, text);
         // The quotes appear right away; the written answer (if available) fills in above them.
-        const canWrite = result.hits.length > 0 && (await checkGeneration());
-        setGeneration((g) => g ?? canWrite);
+        const canWrite = canWriteAnswers && result.hits.length > 0;
         setMessages((m) => [...m, { id: botId, role: 'bot', result, answer: canWrite ? { status: 'loading' } : undefined }]);
         setPending(false);
         if (!canWrite) return;
         const answer = await fetchAnswer(text, result.hits.map((h) => h.idx));
         setAnswer(answer ? { status: 'done', text: answer } : { status: 'off' });
+        setWriting(Boolean(answer));
       })
       .catch(() => {
         setFailed(true);
@@ -161,7 +151,7 @@ export default function PapersChat() {
                 </span>
                 <div className="min-w-0">
                   <h2 id="papers-chat-title" className="font-bold leading-tight">שאלו את המאמרים</h2>
-                  <p className="truncate text-xs opacity-90">{generation ? 'תשובה מסוכמת + ציטוטים מ-5 מאמרים' : 'ציטוטים מ-5 מאמרים'}</p>
+                  <p className="truncate text-xs opacity-90">{writing ? 'תשובה מסוכמת + ציטוטים מ-5 מאמרים' : 'ציטוטים מ-5 מאמרים'}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
@@ -179,7 +169,7 @@ export default function PapersChat() {
 
           {/* Messages */}
           <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain bg-surface-2 p-4" aria-live="polite">
-            {messages.length === 0 && <EmptyState index={index} onAsk={ask} generation={Boolean(generation)} />}
+            {messages.length === 0 && <EmptyState index={index} onAsk={ask} generation={writing} />}
 
             {messages.map((m) =>
               m.role === 'user' ? (

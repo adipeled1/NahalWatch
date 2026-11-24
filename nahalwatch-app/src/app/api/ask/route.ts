@@ -3,16 +3,12 @@ import type { PapersData } from '@/lib/papers';
 import { DEFAULT_MODEL, buildPrompt, callGemini, parseAskBody, passagesFor, type AskResponse } from '@/lib/answer';
 
 // "Ask the papers", server side. Set GEMINI_API_KEY (and optionally GEMINI_MODEL) in the Vercel
-// project's Environment Variables to get written answers. The key never reaches the browser.
-// Without it the chat still works: it shows the retrieved quotes only.
+// project's Environment Variables and redeploy to get written answers. The key never reaches the
+// browser. Without a key the chat never calls this route (see layout.tsx); if it is called anyway,
+// or Gemini fails, it replies { mode: 'quotes' } and the chat shows the quotes only.
 
 const data = papersJson as PapersData;
 const noStore = { 'cache-control': 'no-store' };
-
-/** Lets the chat know whether written answers are available. */
-export async function GET() {
-  return Response.json({ generation: Boolean(process.env.GEMINI_API_KEY) }, { headers: noStore });
-}
 
 export async function POST(request: Request) {
   let body: unknown;

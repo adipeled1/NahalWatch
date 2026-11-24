@@ -47,6 +47,7 @@ Lotka–Volterra). Hebrew, RTL, mobile-first; installable to the home screen.
 - "Ask the papers" (`src/components/PapersChat/`, `src/lib/papers.ts`): retrieval (BM25) runs in the browser
   and always shows verbatim passages from the PDFs with APA citation + page. Generation is optional:
   `src/app/api/ask/route.ts` + `src/lib/answer.ts` call Gemini only when `GEMINI_API_KEY` is set (server-side
-  env var, optional `GEMINI_MODEL`), using the server's own copy of the passages the client found;
-  with no key or on any error the reply is `{ mode: 'quotes' }` and the chat stays quotes-only.
+  env var, optional `GEMINI_MODEL`), using the server's own copy of the passages the client found.
+  Whether a key exists is decided at build time in `layout.tsx` (`canWriteAnswers`, a boolean only), so with
+  no key the chat never calls the server; on any Gemini error the reply is `{ mode: 'quotes' }`.
   Paper metadata (APA) lives in `scripts/build-papers.mjs`; Hebrew → English terms in `src/lib/hebrewTerms.ts`.

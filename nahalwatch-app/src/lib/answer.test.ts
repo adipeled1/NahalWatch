@@ -3,7 +3,7 @@ import papersJson from '../../public/data/papers.json';
 import type { PapersData } from './papers';
 import { buildIndex, search } from './papers';
 import { MAX_PASSAGES, buildPrompt, callGemini, parseAskBody, passagesFor, splitCitations } from './answer';
-import { GET, POST } from '@/app/api/ask/route';
+import { POST } from '@/app/api/ask/route';
 
 const data = papersJson as PapersData;
 const N = data.chunks.length;
@@ -70,18 +70,19 @@ describe('callGemini', () => {
 describe('/api/ask', () => {
   const ids = search(buildIndex(data), 'איך גשם משפיע על חיידקים צואתיים בנחל?').hits.map((h) => h.idx);
 
-  it('without a key: GET reports no generation and POST answers with quotes only', async () => {
+  it('without a key: answers with quotes only and never calls Gemini', async () => {
     vi.stubEnv('GEMINI_API_KEY', '');
-    expect(await (await GET()).json()).toEqual({ generation: false });
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
     const res = await post({ question: 'גשם', ids });
     expect(await res.json()).toEqual({ mode: 'quotes', reason: 'no-key' });
+    expect(f).not.toHaveBeenCalled();
   });
 
   it('with a key: returns the written answer', async () => {
     vi.stubEnv('GEMINI_API_KEY', 'test-key');
     const f = vi.fn().mockResolvedValue(geminiReply('גשם כבד מעלה את ריכוז החיידקים [1].'));
     vi.stubGlobal('fetch', f);
-    expect(await (await GET()).json()).toEqual({ generation: true });
     const body = await (await post({ question: 'איך גשם משפיע?', ids })).json();
     expect(body).toMatchObject({ mode: 'answer', answer: 'גשם כבד מעלה את ריכוז החיידקים [1].' });
     const sent = JSON.parse(f.mock.calls[0][1].body).contents[0].parts[0].text as string;

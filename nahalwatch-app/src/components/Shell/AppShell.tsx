@@ -19,7 +19,7 @@ const NAV = [
 const isActive = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href)) ||
   (href === '/streams' && path.startsWith('/station'));
 
-export default function AppShell({ children }: { children: ReactNode }) {
+export default function AppShell({ children, canWriteAnswers = false }: { children: ReactNode; canWriteAnswers?: boolean }) {
   const path = usePathname();
   const [theme, toggleTheme] = useTheme();
   const isMap = path === '/';
@@ -107,7 +107,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* "Ask the papers": floating button + chat panel, on every page */}
-      <PapersChat />
+      <PapersChat canWriteAnswers={canWriteAnswers} />
     </div>
   );
 }

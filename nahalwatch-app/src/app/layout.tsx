@@ -33,6 +33,11 @@ export const viewport: Viewport = {
 const bootScript = `(function(){try{var t=localStorage.getItem('nw-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}
 if('serviceWorker'in navigator&&location.hostname!=='localhost'){addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}})();`;
 
+// "Ask the papers" writes answers only when the deployment has a Gemini key. Decided at build time
+// (the pages are static), so with no key the chat never calls the server. Only a yes/no reaches the
+// browser, never the key. Changing the key on Vercel takes effect on the next deploy.
+const canWriteAnswers = Boolean(process.env.GEMINI_API_KEY);
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" data-theme="light" className={`${heebo.variable} h-full antialiased`} suppressHydrationWarning>
@@ -40,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: bootScript }} />
       </head>
       <body className="min-h-full font-sans">
-        <AppShell>{children}</AppShell>
+        <AppShell canWriteAnswers={canWriteAnswers}>{children}</AppShell>
       </body>
     </html>
   );
