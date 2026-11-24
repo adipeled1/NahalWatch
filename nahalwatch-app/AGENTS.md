@@ -44,6 +44,9 @@ Lotka–Volterra). Hebrew, RTL, mobile-first; installable to the home screen.
 - Leaflet must only load via `next/dynamic({ ssr: false })` (see `MapScreen.tsx`).
 - Mobile grids use `grid-cols-1` so wide children can't push the page past the viewport.
 - Allowed external hosts are listed in the CSP in `next.config.mjs`; add new ones there.
-- "Ask the papers" (`src/components/PapersChat/`, `src/lib/papers.ts`) is retrieval only: it shows
-  verbatim passages from the PDFs with APA citation + page. No LLM, no API key, no server call.
+- "Ask the papers" (`src/components/PapersChat/`, `src/lib/papers.ts`): retrieval (BM25) runs in the browser
+  and always shows verbatim passages from the PDFs with APA citation + page. Generation is optional:
+  `src/app/api/ask/route.ts` + `src/lib/answer.ts` call Gemini only when `GEMINI_API_KEY` is set (server-side
+  env var, optional `GEMINI_MODEL`), using the server's own copy of the passages the client found;
+  with no key or on any error the reply is `{ mode: 'quotes' }` and the chat stays quotes-only.
   Paper metadata (APA) lives in `scripts/build-papers.mjs`; Hebrew → English terms in `src/lib/hebrewTerms.ts`.

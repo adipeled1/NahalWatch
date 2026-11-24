@@ -35,6 +35,7 @@ warning spells out which parameter crossed which limit, for example
 - **🔎 "Why is it red?"** — Each amber or red card lists every exceeded parameter, its measured value, the limit, and its source.
 - **📍 Station Pages** — The latest values, a history chart with the limits drawn in, a full lab table, official ITM / GPS coordinates where available, and navigation with Waze.
 - **📈 Ecological Models** — A 3-day bacteria forecast (logistic growth), a Lotka–Volterra bacteria/grazer simulator, monthly seasonality, and a "model vs. field" backtest.
+- **🔎 Ask the Papers (RAG)** — A chat that answers research questions from five open-access papers. Search runs in the browser (BM25, Hebrew or English) and always shows the exact quotes with page, PDF link and APA citation. If the server has a Gemini key, it also writes a short answer from those quotes only; without a key it shows the quotes alone.
 - **📰 Updates Feed** — The latest samples from all stations as a news feed, with a regional status ring.
 - **📱 Installable & Offline** — "Add to Home Screen" on iPhone and Android, full-screen, and keeps working with weak reception.
 
@@ -123,7 +124,7 @@ NahalWatch/
 - **Vitest** — unit tests for the traffic-light rules and the models
 - **Vercel** — deployment *(planned)*
 
-No backend and no accounts: the data is pre-built into static JSON, so pages load fast and work offline.
+No accounts: the data is pre-built into static JSON, so pages load fast and work offline. The only server code is the optional `/api/ask` route that writes answers in "Ask the papers".
 
 ---
 
@@ -147,7 +148,11 @@ No backend and no accounts: the data is pre-built into static JSON, so pages loa
    npm run data
    ```
 
-4. **Check everything** (lint + tests + production build):
+4. **Written answers in "Ask the papers"** (optional): copy `nahalwatch-app/.env.example` to `.env.local` and set
+   `GEMINI_API_KEY` (a free key from Google AI Studio). On Vercel, add it under Project → Settings → Environment Variables.
+   The key stays on the server. Without it the chat shows the retrieved quotes only.
+
+5. **Check everything** (lint + tests + production build):
    ```bash
    npm run verify
    ```

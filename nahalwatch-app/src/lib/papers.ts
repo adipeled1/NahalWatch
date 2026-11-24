@@ -3,7 +3,8 @@
  * No language model and no network call — BM25 ranking in the browser over
  * `public/data/papers.json` (built by `npm run papers`). Hebrew questions are mapped to
  * English domain terms with the dictionary in `hebrewTerms.ts`.
- * Answers are always verbatim passages with their citation, never generated text.
+ * The passages are always shown verbatim with their citation. When the server has a Gemini
+ * key, /api/ask also writes a short answer from these same passages (see `answer.ts`).
  */
 import { HE_TERMS, LOW_WEIGHT } from './hebrewTerms';
 
@@ -26,6 +27,8 @@ export interface PapersData { papers: Paper[]; chunks: Chunk[] }
 export interface Concept { source: string; terms: string[]; words: string[]; weight: number }
 
 export interface SearchHit {
+  /** Position of the passage in `chunks` (what the server's /api/ask receives). */
+  idx: number;
   chunk: Chunk;
   paper: Paper;
   score: number;
@@ -215,7 +218,7 @@ export function search(index: PapersIndex, query: string, { limit = 5, perPaper 
     if (used >= perPaper) continue;
     perPaperCount.set(chunk.p, used + 1);
     const paper = index.data.papers[chunk.p];
-    hits.push({ chunk, paper, score, page: chunk.pg + paper.pageOffset, pdfPage: chunk.pg, href: `${paper.pdf}#page=${chunk.pg}` });
+    hits.push({ idx: i, chunk, paper, score, page: chunk.pg + paper.pageOffset, pdfPage: chunk.pg, href: `${paper.pdf}#page=${chunk.pg}` });
   }
   return { hits, concepts, terms };
 }

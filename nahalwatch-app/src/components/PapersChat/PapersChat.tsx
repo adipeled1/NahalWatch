@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BookOpenText, ChevronDown, FileText, Quote, RotateCcw, Send, User, X } from 'lucide-react';
+import { BookOpenText, ChevronDown, FileText, Quote, RotateCcw, Send, Sparkles, User, X } from 'lucide-react';
 import { buildIndex, highlight, search, type PapersIndex, type SearchHit, type SearchResult } from '@/lib/papers';
+import { splitCitations, type AskResponse } from '@/lib/answer';
 
-// "Ask the papers": retrieval only. The answer is always a set of verbatim passages from the
-// PDFs in /public/papers, ranked by BM25 in the browser. No language model, no API, no server.
+// "Ask the papers". Retrieval always runs in the browser: BM25 over passages from the PDFs in
+// /public/papers, shown verbatim (works offline). If the server has a Gemini key, /api/ask also
+// writes a short answer from those same passages; without a key the chat is quotes-only.
 
 const SUGGESTIONS = [
   'איך גשם משפיע על חיידקים צואתיים בנחל?',
@@ -15,9 +17,34 @@ const SUGGESTIONS = [
   'איך טמפרטורה ואור שמש משפיעים על שרידות החיידקים?',
 ];
 
+type Answer = { status: 'loading' } | { status: 'done'; text: string } | { status: 'off' };
 type Message =
   | { id: number; role: 'user'; text: string }
-  | { id: number; role: 'bot'; result: SearchResult };
+  | { id: number; role: 'bot'; result: SearchResult; answer?: Answer };
+
+// Whether the server can write answers (GEMINI_API_KEY is set). Asked once per page load.
+let generationPromise: Promise<boolean> | null = null;
+function checkGeneration() {
+  generationPromise ??= fetch('/api/ask', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : { generation: false }))
+    .then((j: { generation?: boolean }) => Boolean(j.generation))
+    .catch(() => {
+      generationPromise = null; // offline: try again next time
+      return false;
+    });
+  return generationPromise;
+}
+
+async function fetchAnswer(question: string, ids: number[]): Promise<string | null> {
+  try {
+    const r = await fetch('/api/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ question, ids }) });
+    if (!r.ok) return null;
+    const j = (await r.json()) as AskResponse;
+    return j.mode === 'answer' ? j.answer : null;
+  } catch {
+    return null;
+  }
+}
 
 // The index is built once per page load, the first time the chat opens.
 let indexPromise: Promise<PapersIndex> | null = null;
@@ -42,12 +69,14 @@ export default function PapersChat() {
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [generation, setGeneration] = useState<boolean | null>(null);
   const lastQuestion = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     loadIndex().then(setIndex, () => setFailed(true));
+    checkGeneration().then(setGeneration);
     if (matchMedia('(min-width: 1024px)').matches) inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
     window.addEventListener('keydown', onKey);
@@ -72,13 +101,26 @@ export default function PapersChat() {
     setFailed(false);
     setPending(true);
     setMessages((m) => [...m, { id: Date.now(), role: 'user', text }]);
+    const botId = Date.now() + 1;
+    const setAnswer = (answer: Answer) =>
+      setMessages((m) => m.map((x) => (x.id === botId && x.role === 'bot' ? { ...x, answer } : x)));
     loadIndex()
-      .then((idx) => {
+      .then(async (idx) => {
         setIndex(idx);
-        setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', result: search(idx, text) }]);
+        const result = search(idx, text);
+        // The quotes appear right away; the written answer (if available) fills in above them.
+        const canWrite = result.hits.length > 0 && (await checkGeneration());
+        setGeneration((g) => g ?? canWrite);
+        setMessages((m) => [...m, { id: botId, role: 'bot', result, answer: canWrite ? { status: 'loading' } : undefined }]);
+        setPending(false);
+        if (!canWrite) return;
+        const answer = await fetchAnswer(text, result.hits.map((h) => h.idx));
+        setAnswer(answer ? { status: 'done', text: answer } : { status: 'off' });
       })
-      .catch(() => setFailed(true))
-      .finally(() => setPending(false));
+      .catch(() => {
+        setFailed(true);
+        setPending(false);
+      });
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -119,7 +161,7 @@ export default function PapersChat() {
                 </span>
                 <div className="min-w-0">
                   <h2 id="papers-chat-title" className="font-bold leading-tight">שאלו את המאמרים</h2>
-                  <p className="truncate text-xs opacity-90">ציטוטים מ-5 מאמרים · בלי AI גנרטיבי</p>
+                  <p className="truncate text-xs opacity-90">{generation ? 'תשובה מסוכמת + ציטוטים מ-5 מאמרים' : 'ציטוטים מ-5 מאמרים'}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
@@ -137,7 +179,7 @@ export default function PapersChat() {
 
           {/* Messages */}
           <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain bg-surface-2 p-4" aria-live="polite">
-            {messages.length === 0 && <EmptyState index={index} onAsk={ask} />}
+            {messages.length === 0 && <EmptyState index={index} onAsk={ask} generation={Boolean(generation)} />}
 
             {messages.map((m) =>
               m.role === 'user' ? (
@@ -148,7 +190,7 @@ export default function PapersChat() {
                   </span>
                 </div>
               ) : (
-                <BotAnswer key={m.id} result={m.result} />
+                <BotAnswer key={m.id} id={m.id} result={m.result} answer={m.answer} />
               ),
             )}
 
@@ -215,7 +257,7 @@ function BotAvatar() {
   );
 }
 
-function EmptyState({ index, onAsk }: { index: PapersIndex | null; onAsk: (q: string) => void }) {
+function EmptyState({ index, onAsk, generation }: { index: PapersIndex | null; onAsk: (q: string) => void; generation: boolean }) {
   return (
     <div className="flex flex-col items-center pt-2 text-center">
       <span className="mb-3 grid size-14 place-items-center rounded-full bg-accent-soft text-accent">
@@ -227,7 +269,9 @@ function EmptyState({ index, onAsk }: { index: PapersIndex | null; onAsk: (q: st
       </p>
       <p className="mt-3 flex items-start gap-2 rounded-xl bg-water-soft px-3 py-2 text-start text-xs leading-relaxed text-water">
         <Quote className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-        התשובות הן ציטוטים מדויקים מהמאמרים (באנגלית), לא טקסט שנוצר על ידי מודל שפה. החיפוש רץ בדפדפן.
+        {generation
+          ? 'מודל שפה כותב תשובה קצרה רק מתוך הקטעים שנמצאו, ומתחתיה מופיעים הציטוטים המדויקים (באנגלית) עם עמוד וקישור.'
+          : 'התשובות הן ציטוטים מדויקים מהמאמרים (באנגלית), לא טקסט שנוצר על ידי מודל שפה. החיפוש רץ בדפדפן.'}
       </p>
 
       <div className="mt-4 w-full text-start">
@@ -263,7 +307,46 @@ function EmptyState({ index, onAsk }: { index: PapersIndex | null; onAsk: (q: st
   );
 }
 
-function BotAnswer({ result }: { result: SearchResult }) {
+function AnswerBubble({ id, answer, count }: { id: number; answer: Answer; count: number }) {
+  if (answer.status === 'off') return null;
+  if (answer.status === 'loading') {
+    return (
+      <div className="flex items-center gap-2 rounded-2xl rounded-ss-sm border border-border bg-surface px-3.5 py-2.5 text-sm text-muted shadow-sm" aria-label="כותב תשובה">
+        <Sparkles className="size-4 text-accent" aria-hidden />
+        כותב תשובה מתוך הציטוטים
+        <span className="flex gap-1">
+          {[0, 150, 300].map((d) => (
+            <span key={d} className="size-1.5 animate-bounce rounded-full bg-accent" style={{ animationDelay: `${d}ms` }} />
+          ))}
+        </span>
+      </div>
+    );
+  }
+  const jump = (n: number) => document.getElementById(`q-${id}-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return (
+    <div className="rounded-2xl rounded-ss-sm border border-accent/30 bg-accent-soft/40 px-3.5 py-3 shadow-sm">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-accent">
+        <Sparkles className="size-3.5" aria-hidden />
+        תשובה מסוכמת מתוך הציטוטים
+      </div>
+      <p dir="auto" className="whitespace-pre-line text-sm leading-relaxed text-fg">
+        {splitCitations(answer.text, count).map((part, i) =>
+          part.cite ? (
+            <button key={i} type="button" onClick={() => jump(part.cite!)} aria-label={`ציטוט ${part.cite}`}
+              className="num mx-0.5 inline-grid size-5 place-items-center rounded-full bg-accent text-[10px] font-bold text-accent-fg align-middle hover:bg-accent-hover">
+              {part.cite}
+            </button>
+          ) : (
+            <span key={i}>{part.text}</span>
+          ),
+        )}
+      </p>
+      <p className="mt-2 text-[11px] leading-relaxed text-faint">נכתב על ידי מודל שפה רק מתוך הקטעים שלמטה. בדקו מול הציטוטים.</p>
+    </div>
+  );
+}
+
+function BotAnswer({ id, result, answer }: { id: number; result: SearchResult; answer?: Answer }) {
   const { hits, concepts } = result;
   // Highlight the domain terms only (not generic ones like "effect").
   const terms = new Set(concepts.filter((c) => c.weight >= 1).flatMap((c) => c.terms));
@@ -272,8 +355,11 @@ function BotAnswer({ result }: { result: SearchResult }) {
     <div className="flex gap-2.5">
       <BotAvatar />
       <div className="min-w-0 flex-1 space-y-2.5">
+        {answer && <AnswerBubble id={id} answer={answer} count={hits.length} />}
         <div className="rounded-2xl rounded-ss-sm border border-border bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-fg shadow-sm">
-          {hits.length > 0 ? (
+          {hits.length > 0 && answer?.status === 'done' ? (
+            <>הקטעים שעליהם מבוססת התשובה:</>
+          ) : hits.length > 0 ? (
             <>הנה {hits.length === 1 ? 'הקטע הכי קשור' : <><span className="num">{hits.length}</span> הקטעים הכי קשורים</>} לשאלה, מתוך המאמרים:</>
           ) : (
             <>לא מצאתי במאמרים קטע שמתאים לשאלה. נסו מילים אחרות (למשל גשם, עכירות, E. coli, טמפרטורה) או אחת מהשאלות לדוגמה.</>
@@ -284,17 +370,17 @@ function BotAnswer({ result }: { result: SearchResult }) {
             </div>
           )}
         </div>
-        {hits.map((h, i) => <QuoteCard key={`${h.paper.id}-${h.chunk.pg}-${i}`} hit={h} n={i + 1} terms={terms} />)}
+        {hits.map((h, i) => <QuoteCard key={`${h.paper.id}-${h.chunk.pg}-${i}`} anchor={`q-${id}-${i + 1}`} hit={h} n={i + 1} terms={terms} />)}
       </div>
     </div>
   );
 }
 
-function QuoteCard({ hit, n, terms }: { hit: SearchHit; n: number; terms: Set<string> }) {
+function QuoteCard({ anchor, hit, n, terms }: { anchor: string; hit: SearchHit; n: number; terms: Set<string> }) {
   const [showApa, setShowApa] = useState(false);
   const { paper } = hit;
   return (
-    <article className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
+    <article id={anchor} className="scroll-mt-4 overflow-hidden rounded-xl border border-border bg-surface shadow-card">
       <header className="flex items-center gap-2 border-b border-border px-3 py-2">
         <span className="num grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent">{n}</span>
         <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-fg">
