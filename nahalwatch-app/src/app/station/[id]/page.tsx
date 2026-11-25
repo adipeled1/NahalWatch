@@ -5,6 +5,10 @@ import StationDetail from '@/components/Station/StationDetail';
 
 type Props = { params: Promise<{ id: string }> };
 
+// Every station is pre-built by generateStaticParams; any other id is a plain 404 from the router
+// (no page render that bails out with notFound(), which re-rendered the layout on the client in dev).
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return (stations as { id: string }[]).map((s) => ({ id: s.id }));
 }

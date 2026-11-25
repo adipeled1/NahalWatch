@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Heebo } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import AppShell from '@/components/Shell/AppShell';
 
@@ -41,10 +42,10 @@ const canWriteAnswers = Boolean(process.env.GEMINI_API_KEY);
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" data-theme="light" className={`${heebo.variable} h-full antialiased`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: bootScript }} />
-      </head>
       <body className="min-h-full font-sans">
+        {/* next/script (not a raw <script>): Next injects it into <head> before hydration, and React
+            doesn't warn about a script tag when a page such as the 404 is rendered on the client. */}
+        <Script id="nw-boot" strategy="beforeInteractive">{bootScript}</Script>
         <AppShell canWriteAnswers={canWriteAnswers}>{children}</AppShell>
       </body>
     </html>

@@ -63,6 +63,9 @@ export default function PapersChat({ canWriteAnswers = false }: { canWriteAnswer
   const [writing, setWriting] = useState(canWriteAnswers);
   const lastQuestion = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Message ids (React keys) come from one running counter, so a question and its reply can never
+  // share an id. (Date.now() could: one was read at render time, the other at click time + 1 ms.)
+  const nextId = useRef(0);
 
   useEffect(() => {
     if (!open) return;
@@ -90,8 +93,9 @@ export default function PapersChat({ canWriteAnswers = false }: { canWriteAnswer
     setInput('');
     setFailed(false);
     setPending(true);
-    setMessages((m) => [...m, { id: Date.now(), role: 'user', text }]);
-    const botId = Date.now() + 1;
+    const userId = ++nextId.current;
+    const botId = ++nextId.current;
+    setMessages((m) => [...m, { id: userId, role: 'user', text }]);
     const setAnswer = (answer: Answer) =>
       setMessages((m) => m.map((x) => (x.id === botId && x.role === 'bot' ? { ...x, answer } : x)));
     loadIndex()
