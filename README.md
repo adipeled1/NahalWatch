@@ -17,6 +17,7 @@ Every warning names the parameter, the measured value and the official limit it 
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet-1.9-199900?style=flat-square&logo=leaflet&logoColor=white)
+![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-map_tiles-7EBC6F?style=flat-square&logo=openstreetmap&logoColor=white)
 ![Recharts](https://img.shields.io/badge/Recharts-3-22B5BF?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-installable_·_offline-5A0FC8?style=flat-square&logo=pwa&logoColor=white)
 ![Gemini](https://img.shields.io/badge/Gemini-optional_RAG-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)
