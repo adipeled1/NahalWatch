@@ -1,18 +1,61 @@
-# 💧 NahalWatch — Is the Stream Safe Today?
+<div align="center">
 
-**🚀 Live Demo:** *coming soon (Vercel)* · installable on any phone as a web app ([PWA](#-what-is-a-pwa))
+<img src="nahalwatch-app/public/icons/icon-192.png" alt="NahalWatch app icon" width="96" height="96" />
+
+# NahalWatch
+
+### Is the stream safe to swim in today?
+
+A traffic-light map of Israel's streams, built from 30 years of official monitoring samples.<br/>
+Every warning names the parameter, the measured value and the official limit it crossed.
+
+<br/>
+
+![Status](https://img.shields.io/badge/status-student_project_·_demo_soon-2ea44f?style=flat-square)
+![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Leaflet](https://img.shields.io/badge/Leaflet-1.9-199900?style=flat-square&logo=leaflet&logoColor=white)
+![Recharts](https://img.shields.io/badge/Recharts-3-22B5BF?style=flat-square)
+![PWA](https://img.shields.io/badge/PWA-installable_·_offline-5A0FC8?style=flat-square&logo=pwa&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini-optional_RAG-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-52_tests-6E9F18?style=flat-square&logo=vitest&logoColor=white)
+
+[**Run it**](#-getting-started) &nbsp;·&nbsp;
+[**Traffic-light rules**](#-how-the-traffic-light-works) &nbsp;·&nbsp;
+[**Ask the papers (RAG)**](#-ask-the-papers-rag) &nbsp;·&nbsp;
+[**Data sources**](#️-data-sources) &nbsp;·&nbsp;
+[**App code**](nahalwatch-app/)
+
+<br/>
+
+<img src="documentation/poster/assets/phone-map.png" width="230" alt="Traffic-light map of the Upper Jordan sources by Kfar Blum and Amir" />
+&nbsp;
+<img src="documentation/poster/assets/phone-station.png" width="230" alt="Station page with the official limits that were crossed" />
+&nbsp;
+<img src="documentation/poster/assets/phone-updates.png" width="230" alt="Updates feed of the latest samples" />
+
+</div>
 
 > **This is a student academic project.** The traffic light is computed from the latest sample in an official
 > dataset and does not replace current notices from the Ministry of Health or the Nature and Parks Authority.
 > On-site "no bathing" signs always take precedence.
 
-<p align="center">
-  <img src="documentation/poster/assets/phone-map.png" width="230" alt="Traffic-light map of the Upper Jordan sources by Kfar Blum and Amir" />
-  &nbsp;
-  <img src="documentation/poster/assets/phone-station.png" width="230" alt="Station page with the official limits that were crossed" />
-  &nbsp;
-  <img src="documentation/poster/assets/phone-updates.png" width="230" alt="Updates feed of the latest samples" />
-</p>
+---
+
+## Table of contents
+
+1. [Overview](#-overview) — the one question the app answers, and the data behind it
+2. [Features](#-features) — map, official limits, station pages, models, "Ask the papers", offline
+3. [What is a PWA?](#-what-is-a-pwa) — installing it on a phone, and how it works offline
+4. [How the traffic light works](#-how-the-traffic-light-works) — the colors and their official sources
+5. [Ask the papers (RAG)](#-ask-the-papers-rag) — retrieval in the browser, optional written answers
+6. [Data sources](#️-data-sources) — monitoring samples and official station coordinates
+7. [Repository structure](#️-repository-structure) — what each folder is for
+8. [Tech stack](#️-tech-stack) — what it's built with
+9. [Getting started](#-getting-started) — run it, update the data, check everything
+10. [Contributors](#-contributors) and [project context](#-project-context)
 
 ---
 
@@ -160,16 +203,19 @@ NahalWatch/
     │   ├── papers/                  — the five research papers (PDF) for "Ask the papers"
     │   └── sw.js                    — service worker (offline)
     └── src/
-        ├── app/                     — pages: map, updates, streams, station, models, about; api/ask (RAG)
+        ├── app/                     — pages: map, updates, streams, station, models, about; api/ask (RAG);
+        │                              error / not-found pages, sitemap.xml, robots.txt
         ├── components/              — Map, Station, Updates, Streams, Models, PapersChat, Shell, ui
-        └── lib/                     — traffic-light rules, ecological models, data access, RAG search
+        ├── hooks/                   — client-only React hooks: today's date, station history, theme
+        └── lib/                     — traffic-light rules, ecological models, data modules, RAG search
+                                       (no React here, so server components can import it)
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Next.js** (App Router) + React + TypeScript + **Tailwind CSS**
+- **Next.js 16** (App Router: static pages, server components, one API route) + **React 19** + TypeScript + **Tailwind CSS 4**
 - **Leaflet** + **OpenStreetMap** — interactive map (Esri imagery for the satellite layer)
 - **Recharts** — history, seasonality and model charts
 - **SheetJS (`xlsx`)** — spreadsheet import and the locations sheet
