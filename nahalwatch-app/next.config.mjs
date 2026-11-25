@@ -1,3 +1,10 @@
+// 'unsafe-eval' lets a page turn strings into code (eval / new Function). Only `next dev` needs it
+// (fast refresh, source maps); in production it would only weaken XSS protection, so it's dev-only.
+// 'unsafe-inline' stays: Next's inline bootstrap scripts need it unless every page uses a nonce,
+// and nonces would force dynamic rendering of these static pages.
+const isDev = process.env.NODE_ENV === 'development';
+const scriptSrc = ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])].join(' ');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
@@ -15,7 +22,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              `script-src ${scriptSrc}`,
               "style-src 'self' 'unsafe-inline'",
               // Map tiles: OpenStreetMap (street) and Esri World Imagery (satellite).
               "img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com",
