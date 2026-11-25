@@ -3,16 +3,12 @@ import { Heebo } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
 import AppShell from '@/components/Shell/AppShell';
+import { SITE_URL } from '@/lib/site';
 
 const heebo = Heebo({ subsets: ['hebrew', 'latin'], variable: '--font-heebo', display: 'swap' });
 
-// Same resolution order as the reference app: explicit site URL → Vercel URL → localhost.
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-  || 'http://localhost:3000';
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: { default: 'NahalWatch', template: '%s · NahalWatch' },
   description: 'מפת רמזור לאיכות המים בנחלי ישראל — האם אפשר להיכנס למים היום? מבוסס על 30 שנות נתוני ניטור ומודלים אקולוגיים.',
   applicationName: 'NahalWatch',

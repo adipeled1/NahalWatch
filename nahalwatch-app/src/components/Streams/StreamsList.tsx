@@ -2,10 +2,10 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ChevronLeft, Search } from 'lucide-react';
-import { REGION_LABEL } from '@/lib/data';
+import { REGION_LABEL } from '@/lib/geo';
 import { ageLabel, fmt, type Status } from '@/lib/quality';
 import { rateAll, type RatedStation } from '@/lib/stations';
-import { useNow } from '@/lib/useNow';
+import { useNow } from '@/hooks/useNow';
 import type { Region } from '@/lib/types';
 import { Card, Chip, PageHeader } from '@/components/ui/Card';
 import { StatusBadge, StatusDot } from '@/components/ui/Status';

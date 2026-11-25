@@ -1,40 +1,29 @@
-'use client';
+/**
+ * The station page, rendered on the server (at build time: every station is pre-built).
+ * Answer → forecast → latest values → history chart → full table. Only the parts that depend on
+ * today's date or load in the browser are client islands (StationLive.tsx); they get this one
+ * station as a prop, so the page doesn't ship the whole station index.
+ */
 import Link from 'next/link';
-import { useMemo } from 'react';
-import { ArrowRight, CalendarClock, FlaskConical, Gauge, LineChart as LineIcon, MapPin, Navigation, TableProperties } from 'lucide-react';
-import { STATION_BY_ID, useSeries } from '@/lib/data';
-import { forecastFcoli } from '@/lib/models';
+import { ArrowRight, FlaskConical, Gauge, LineChart as LineIcon, MapPin, Navigation, TableProperties } from 'lucide-react';
 import { GROUP_LABEL, PARAMS, paramInfo, type ParamGroup } from '@/lib/params';
-import { STALE_DAYS, ageInDays, ageLabel, assess, exceedances, fmt, type Assessment } from '@/lib/quality';
-import { nearestSafe, rateAll } from '@/lib/stations';
-import { useNow } from '@/lib/useNow';
+import { assess, exceedances, fmt, type Assessment } from '@/lib/quality';
+import type { SafeCandidate } from '@/lib/alternatives';
 import type { Station } from '@/lib/types';
 import { Card, CardHeader } from '@/components/ui/Card';
-import { LoadError } from '@/components/ui/LoadError';
 import { FindingList, StatusBadge, statusTone } from '@/components/ui/Status';
-import { ForecastStrip } from './ForecastStrip';
-import { HistoryChart } from './HistoryChart';
+import { ForecastAndAlternative, LatestSampleAge, StationHistory } from './StationLive';
 
-const dateFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+/** Sample days are calendar days: format them in UTC so the date never shifts with the server's zone. */
+const dateFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 /** Key parameters shown as tiles (when measured in the latest sample), in this order. */
 const TILE_KEYS = ['Fcoli', 'Ecoli', 'Fstrp', 'BODt', 'CODt', 'NH4', 'NO3', 'Ptot', 'TSS105', 'Do', 'Temp', 'pH', 'Ec', 'Cl'];
 
-export default function StationDetail({ id }: { id: string }) {
-  const station = STATION_BY_ID[id];
-  const a = useMemo(() => assess(station.latest), [station]);
-  const { data: series, error: seriesError, retry } = useSeries(id);
+export default function StationDetail({ station, candidates }: { station: Station; candidates: SafeCandidate[] }) {
+  const a = assess(station.latest);
   const tone = statusTone(a.status);
   const issues = exceedances(a);
-  // The page is pre-rendered at build time: everything that depends on today's date waits for the
-  // browser's clock (null until then), so the HTML and the first client render match.
-  const now = useNow();
-  const age = now ? ageInDays(station.latest.d, now) : 0;
-  const forecast = useMemo(() => (now ? forecastFcoli(station, now) : null), [station, now]);
-  const alt = useMemo(
-    () => (now && a.status !== 'safe' ? nearestSafe(station, rateAll(now)) : null),
-    [a.status, station, now],
-  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -69,16 +58,7 @@ export default function StationDetail({ id }: { id: string }) {
                 <FindingList findings={issues} />
               </div>
             )}
-            <div className={`flex items-center gap-2 text-sm ${age > STALE_DAYS ? 'text-caution' : 'text-muted'}`}>
-              <CalendarClock className="size-4 shrink-0" aria-hidden />
-              דגימה אחרונה: {dateFmt.format(new Date(station.latest.d))}{now && ` (${ageLabel(station.latest.d, now)})`}
-              {station.latest.lab && <span className="text-faint">· מעבדת {station.latest.lab}</span>}
-            </div>
-            {age > STALE_DAYS && (
-              <p className="rounded-lg bg-caution-soft px-3 py-2 text-xs text-caution">
-                הנתון האחרון ישן מ-{Math.round(STALE_DAYS / 30)} חודשים. המצב בשטח עשוי להיות שונה — התחזית מבוססת על הנתונים ההיסטוריים של התחנה.
-              </p>
-            )}
+            <LatestSampleAge day={station.latest.d} lab={station.latest.lab} />
             <a
               href={`https://waze.com/ul?ll=${station.lat},${station.lng}&navigate=yes`}
               target="_blank"
@@ -106,33 +86,11 @@ export default function StationDetail({ id }: { id: string }) {
           </div>
         </Card>
 
-        <div className="flex flex-col gap-4">
-          {forecast && (
-            <Card>
-              <CardHeader icon={<LineIcon className="size-4" />} title="תחזית ל-3 הימים הקרובים" subtitle="מודל גידול לוגיסטי — מהדגימה האחרונה אל הרמה העונתית האופיינית לתחנה" />
-              <div className="px-4 pb-4">
-                <ForecastStrip forecast={forecast} status={a.status} />
-                <p className="mt-2 text-xs leading-relaxed text-muted">
-                  N₀ = <span className="num">{fmt(forecast.n0)}</span> ({forecast.fromDate}), K = חציון חודשי היסטורי ={' '}
-                  <span className="num">{fmt(forecast.k)}</span>, r = 0.35 ליום. <Link href="/models" className="font-semibold text-water underline">איך זה עובד?</Link>
-                </p>
-              </div>
-            </Card>
-          )}
-          {alt && (
-            <Link href={`/station/${alt.r.station.id}`} className="flex items-center gap-3 rounded-2xl border border-safe/30 bg-safe-soft p-4">
-              <Navigation className="size-6 shrink-0 text-safe" aria-hidden />
-              <div className="min-w-0 flex-1">
-                <div className="font-bold text-safe">חלופה בטוחה קרובה</div>
-                <div className="truncate text-sm">{alt.r.station.stream} · {alt.r.station.name}</div>
-                <div className="text-xs text-muted">
-                  {fmt(Math.round(alt.km))} ק״מ בקו אוויר · נדגמה {now && ageLabel(alt.r.station.latest.d, now)}
-                </div>
-              </div>
-              <StatusBadge status="safe" />
-            </Link>
-          )}
-        </div>
+        <ForecastAndAlternative
+          station={{ latest: station.latest, fcoliMonthly: station.fcoliMonthly }}
+          status={a.status}
+          candidates={candidates}
+        />
       </div>
 
       <LatestTiles station={station} a={a} />
@@ -140,13 +98,7 @@ export default function StationDetail({ id }: { id: string }) {
       <Card>
         <CardHeader icon={<LineIcon className="size-4" />} title="היסטוריית מדידות" subtitle={`${station.sampleCount} דגימות · קווי הסף מסומנים בגרף`} />
         <div className="px-2 pb-4 lg:px-4">
-          {seriesError ? (
-            <LoadError onRetry={retry} />
-          ) : !series ? (
-            <div className="grid h-64 place-items-center text-sm text-muted">טוען נתונים…</div>
-          ) : (
-            <HistoryChart samples={series} expert />
-          )}
+          <StationHistory id={station.id} />
         </div>
       </Card>
 

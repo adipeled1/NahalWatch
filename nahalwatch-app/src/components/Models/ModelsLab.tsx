@@ -2,10 +2,11 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Bug, CalendarRange, GitCompareArrows, Sprout } from 'lucide-react';
-import { STATIONS, STATION_BY_ID, useSeries } from '@/lib/data';
+import { STATIONS, STATION_BY_ID } from '@/lib/stationIndex';
+import { useSeries } from '@/hooks/useSeries';
 import { backtestSeasonal, logisticSeries, lotkaVolterra, seasonalK } from '@/lib/models';
 import { FCOLI_RULE, fmt, severityOf } from '@/lib/quality';
-import { useNow } from '@/lib/useNow';
+import { useNow } from '@/hooks/useNow';
 import { Card, CardHeader, PageHeader, Stat } from '@/components/ui/Card';
 import { LoadError } from '@/components/ui/LoadError';
 

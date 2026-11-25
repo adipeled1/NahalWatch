@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Crosshair, History, Home, Layers, Search, X } from 'lucide-react';
-import { HOME_VIEW, REGION_BOUNDS, REGION_LABEL, distanceKm } from '@/lib/data';
+import { HOME_VIEW, REGION_BOUNDS, REGION_LABEL, distanceKm } from '@/lib/geo';
 import type { Status } from '@/lib/quality';
 import { STATUS_LABEL } from '@/lib/quality';
 import { countByStatus, rateAll } from '@/lib/stations';

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ageInDays, ageLabel, assess, exceedances } from './quality';
 import { backtestSeasonal, forecastFcoli, logistic, lotkaVolterra } from './models';
 import { nearestSafe } from './stations';
+import { pickSafeAlternative, safeCandidatesNear } from './alternatives';
 import type { Station } from './types';
 
 const sample = (v: Record<string, number>, q?: Record<string, '<' | '>'>) => ({ d: '2025-06-01', v, q });
@@ -94,6 +95,14 @@ describe('nearestSafe', () => {
     const recentSafe = station('recent', '2026-10-01', 20, 33.1);
     expect(nearestSafe(from, [rate(staleSafe)])).toBeNull();
     expect(nearestSafe(from, [rate(staleSafe), rate(recentSafe)])?.r.station.id).toBe('recent');
+  });
+
+  it('station page: the server lists nearby green stations, the browser skips stale ones', () => {
+    const from = station('bad', '2026-11-20', 5000);
+    const all = [from, station('stale', '2024-06-01', 20, 33.01), station('red', '2026-11-01', 900, 33.02), station('recent', '2026-10-01', 20, 33.1), station('far', '2026-10-01', 20, 34)];
+    const candidates = safeCandidatesNear(from, all);
+    expect(candidates.map((c) => c.id)).toEqual(['stale', 'recent']); // green, within 40 km, nearest first
+    expect(pickSafeAlternative(candidates, now)?.id).toBe('recent');
   });
 });
 

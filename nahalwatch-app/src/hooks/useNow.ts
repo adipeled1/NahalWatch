@@ -1,6 +1,6 @@
 /**
  * The current time for client components, without breaking hydration.
- * Kept apart from time.ts so server components can import the date helpers (no React hook there).
+ * React hooks live in src/hooks (client only); the date helpers it pairs with are in src/lib/time.ts.
  */
 import { useSyncExternalStore } from 'react';
 

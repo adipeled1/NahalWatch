@@ -1,5 +1,5 @@
 /**
- * Calendar days in Israel time. (The client clock hook is `useNow` in useNow.ts.)
+ * Calendar days in Israel time. (The client clock hook is `useNow` in src/hooks/useNow.ts.)
  *
  * Samples are calendar days ("2025-11-04"). "Today" must be the Israeli calendar day, not the UTC
  * one, or a sample from yesterday reads as "today" between midnight and 02:00/03:00.

@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useEffect, useMemo } from 'react';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
-import { CONFLUENCE, HOME_VIEW } from '@/lib/data';
+import { CONFLUENCE, HOME_VIEW } from '@/lib/geo';
 import type { Status } from '@/lib/quality';
 import type { Station } from '@/lib/types';
 

@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, FlaskConical, Info, Map as MapIcon, Moon, Sun, Waves } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { META } from '@/lib/data';
-import { useTheme } from '@/lib/storage';
+import { META } from '@/lib/meta';
+import { useTheme } from '@/hooks/useTheme';
 import PapersChat from '@/components/PapersChat/PapersChat';
 
 const NAV = [

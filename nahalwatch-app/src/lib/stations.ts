@@ -1,5 +1,6 @@
 /** Derived, app-wide views over the station index (computed once per load). */
-import { STATIONS, distanceKm } from './data';
+import { distanceKm } from './geo';
+import { STATIONS } from './stationIndex';
 import { STALE_DAYS, ageInDays, assess, type Assessment, type Status } from './quality';
 import type { Station } from './types';
 

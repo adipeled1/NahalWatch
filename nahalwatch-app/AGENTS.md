@@ -40,7 +40,22 @@ Lotka–Volterra). Hebrew, RTL, mobile-first; installable to the home screen.
   the semantic Tailwind names (`bg-surface`, `text-danger`, …). No raw hex in components.
 - Station coordinates are hand-placed approximations in `data/station-coords.json`
   (the source has no GPS). Keys are `stream|station name` exactly as in the Excel.
-- `src/lib/*` must stay importable from server components: no `'use client'` there.
+- `src/lib/*` must stay importable from server components: no `'use client'` and no React hooks there.
+  React hooks live in `src/hooks/` (client only: `useNow`, `useSeries`, `useTheme`).
+- Data modules are split by size, so a page only ships what it uses: `lib/meta.ts` (~1 KB summary),
+  `lib/geo.ts` (regions, map view, distance), `lib/stationIndex.ts` (all stations, ~100 KB: import it
+  only where every station is needed, or on the server), `lib/series.ts` (per-station history fetch).
+- Server components by default; `'use client'` only where there is interaction, browser APIs or
+  today's date. The station page is the model: `StationDetail.tsx` renders on the server and gets
+  its station as a prop; `StationLive.tsx` holds the client islands (sample age, forecast + safe
+  alternative, history chart). Client code must not reach `lib/stationIndex.ts` through an import
+  chain: that's why the safe-alternative logic for this page is in `lib/alternatives.ts` (the server
+  lists nearby green stations, the browser checks their age), not in `lib/stations.ts`. Never import a value from a `'use client'` file into a server
+  component (it becomes a client reference): only components cross that boundary.
+- Anything that depends on today's date renders through `useNow()` (null on the server and during
+  hydration), because every page is pre-rendered at build time. Days are Israel calendar days (`lib/time.ts`).
+- Route files: `error.tsx` (page errors, shell stays up), `global-error.tsx` (root layout errors),
+  `not-found.tsx`, `sitemap.ts` and `robots.ts` (use `SITE_URL` from `lib/site.ts`).
 - Leaflet must only load via `next/dynamic({ ssr: false })` (see `MapScreen.tsx`).
 - Mobile grids use `grid-cols-1` so wide children can't push the page past the viewport.
 - Allowed external hosts are listed in the CSP in `next.config.mjs`; add new ones there.
