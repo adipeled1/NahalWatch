@@ -4,11 +4,16 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceL
 import { Bug, CalendarRange, GitCompareArrows, Sprout } from 'lucide-react';
 import { STATIONS, STATION_BY_ID, useSeries } from '@/lib/data';
 import { backtestSeasonal, logisticSeries, lotkaVolterra, seasonalK } from '@/lib/models';
-import { fmt } from '@/lib/quality';
+import { FCOLI_RULE, fmt, severityOf } from '@/lib/quality';
+import { useNow } from '@/lib/useNow';
 import { Card, CardHeader, PageHeader, Stat } from '@/components/ui/Card';
+import { LoadError } from '@/components/ui/LoadError';
 
 const MONTHS = ['ינו׳', 'פבר׳', 'מרץ', 'אפר׳', 'מאי', 'יוני', 'יולי', 'אוג׳', 'ספט׳', 'אוק׳', 'נוב׳', 'דצמ׳'];
 const tooltipStyle = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, direction: 'rtl' as const };
+// Official fecal-coliform limits (Ministry of Health), from RULES in quality.ts.
+const FCOLI_CAUTION = FCOLI_RULE.cautionAbove!;
+const FCOLI_DANGER = FCOLI_RULE.dangerAbove!;
 const DEFAULT_ID = 's734'; // Hermon @ Kfar Szold bridge — longest record near the Jordan sources
 
 // Stations with enough bacteria history to model.
@@ -19,6 +24,8 @@ const CANDIDATES = STATIONS
 export default function ModelsLab() {
   const [id, setId] = useState(STATION_BY_ID[DEFAULT_ID] ? DEFAULT_ID : CANDIDATES[0].id);
   const station = STATION_BY_ID[id];
+  // K defaults to this month's median: wait for the browser's clock (the page is pre-rendered).
+  const now = useNow();
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,7 +46,11 @@ export default function ModelsLab() {
       </PageHeader>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <LogisticCard key={`log-${id}`} stationId={id} />
+        {now ? (
+          <LogisticCard key={`log-${id}`} stationId={id} now={now} />
+        ) : (
+          <Card className="grid h-80 place-items-center text-sm text-muted">טוען מודל…</Card>
+        )}
         <SeasonCard monthly={station.fcoliMonthly ?? []} />
       </div>
       <BacktestCard stationId={id} />
@@ -62,9 +73,9 @@ function Slider({ label, value, min, max, step, onChange, display }: {
   );
 }
 
-function LogisticCard({ stationId }: { stationId: string }) {
+function LogisticCard({ stationId, now }: { stationId: string; now: Date }) {
   const s = STATION_BY_ID[stationId];
-  const k0 = Math.round(seasonalK(s, new Date()) ?? 500);
+  const k0 = Math.round(seasonalK(s, now) ?? 500);
   const n00 = Math.round(s.latest.v.Fcoli ?? 50);
   const [n0, setN0] = useState(Math.max(1, n00));
   const [k, setK] = useState(Math.max(1, k0));
@@ -88,8 +99,8 @@ function LogisticCard({ stationId }: { stationId: string }) {
               <YAxis stroke="var(--faint)" fontSize={11} width={48} tickFormatter={(v) => fmt(v)} />
               <Tooltip contentStyle={tooltipStyle} labelFormatter={(t) => `יום ${Number(t).toFixed(1)}`} formatter={(v) => [fmt(Math.round(Number(v))), 'cfu/100ml']} />
               <ReferenceLine y={k} stroke="var(--water)" strokeDasharray="4 4" label={{ value: 'K', fill: 'var(--water)', fontSize: 11, position: 'right' }} />
-              <ReferenceLine y={400} stroke="var(--danger)" strokeDasharray="5 4" />
-              <ReferenceLine y={200} stroke="var(--caution)" strokeDasharray="5 4" />
+              <ReferenceLine y={FCOLI_DANGER} stroke="var(--danger)" strokeDasharray="5 4" />
+              <ReferenceLine y={FCOLI_CAUTION} stroke="var(--caution)" strokeDasharray="5 4" />
               <Line dataKey="value" stroke="var(--accent)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -109,7 +120,10 @@ function LogisticCard({ stationId }: { stationId: string }) {
 
 function SeasonCard({ monthly }: { monthly: (number | null)[] }) {
   const data = MONTHS.map((m, i) => ({ m, v: monthly[i] ?? 0, has: monthly[i] != null }));
-  const color = (v: number) => (v > 400 ? 'var(--danger)' : v > 200 ? 'var(--caution)' : 'var(--safe)');
+  const color = (v: number) => {
+    const sev = severityOf('Fcoli', v);
+    return sev === 'danger' ? 'var(--danger)' : sev === 'caution' ? 'var(--caution)' : 'var(--safe)';
+  };
   return (
     <Card>
       <CardHeader icon={<CalendarRange className="size-4" />} title="עונתיות החיידקים" subtitle="חציון קוליפורמים צואתיים לפי חודש, מכל שנות הניטור" />
@@ -136,7 +150,7 @@ function SeasonCard({ monthly }: { monthly: (number | null)[] }) {
 }
 
 function BacktestCard({ stationId }: { stationId: string }) {
-  const { data: series } = useSeries(stationId);
+  const { data: series, error, retry } = useSeries(stationId);
   const result = useMemo(() => (series ? backtestSeasonal(series) : null), [series]);
   const chart = result?.pairs.map((p) => ({ t: new Date(p.date).getTime(), measured: Math.max(1, p.measured), predicted: Math.max(1, p.predicted) })) ?? [];
   const within = result ? result.pairs.filter((p) => p.predicted / 3 <= p.measured && p.measured <= p.predicted * 3).length : 0;
@@ -145,7 +159,9 @@ function BacktestCard({ stationId }: { stationId: string }) {
     <Card>
       <CardHeader icon={<GitCompareArrows className="size-4" />} title="מודל מול שטח" subtitle="כל דגימה אמיתית מול תחזית המודל העונתי שנבנה משנים אחרות בלבד (leave-one-year-out)" />
       <div className="px-4 pb-4">
-        {!result ? (
+        {error ? (
+          <LoadError onRetry={retry} className="h-56" />
+        ) : !result ? (
           <div className="grid h-56 place-items-center text-sm text-muted">טוען נתונים…</div>
         ) : (
           <>
@@ -162,7 +178,7 @@ function BacktestCard({ stationId }: { stationId: string }) {
                   <YAxis scale="log" domain={[1, 'auto']} allowDataOverflow stroke="var(--faint)" fontSize={11} width={52} tickFormatter={(v) => fmt(v)} />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(t) => new Date(Number(t)).toLocaleDateString('he-IL')} formatter={(v, n) => [fmt(Number(v)), n === 'measured' ? 'נמדד' : 'מודל']} />
                   <Legend formatter={(v) => (v === 'measured' ? 'נמדד בשטח' : 'תחזית המודל')} wrapperStyle={{ fontSize: 12 }} />
-                  <ReferenceLine y={400} stroke="var(--danger)" strokeDasharray="5 4" />
+                  <ReferenceLine y={FCOLI_DANGER} stroke="var(--danger)" strokeDasharray="5 4" />
                   <Line dataKey="measured" stroke="var(--water)" strokeWidth={1.5} dot={{ r: 2 }} isAnimationActive={false} />
                   <Line dataKey="predicted" stroke="var(--accent)" strokeWidth={2} strokeDasharray="6 3" dot={false} isAnimationActive={false} />
                 </LineChart>

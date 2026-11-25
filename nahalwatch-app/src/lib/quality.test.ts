@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ageLabel, assess, exceedances } from './quality';
+import { ageInDays, ageLabel, assess, exceedances } from './quality';
 import { backtestSeasonal, forecastFcoli, logistic, lotkaVolterra } from './models';
+import { nearestSafe } from './stations';
+import type { Station } from './types';
 
 const sample = (v: Record<string, number>, q?: Record<string, '<' | '>'>) => ({ d: '2025-06-01', v, q });
 
@@ -68,6 +70,31 @@ describe('ageLabel', () => {
     expect(ageLabel('2024-01-01', now)).toBe('לפני 2 שנים');
     expect(ageLabel('2025-01-12', now)).toBe('לפני שנה');
   });
+
+  it('counts days in Israel time, not UTC', () => {
+    // 01:00 in Israel on Nov 26 is still Nov 25 in UTC: yesterday's sample is "אתמול", not "היום".
+    const afterMidnight = new Date('2026-11-25T23:00:00Z');
+    expect(ageInDays('2026-11-25', afterMidnight)).toBe(1);
+    expect(ageLabel('2026-11-25', afterMidnight)).toBe('אתמול');
+    expect(ageLabel('2026-11-26', afterMidnight)).toBe('היום');
+  });
+});
+
+describe('nearestSafe', () => {
+  const station = (id: string, d: string, Fcoli: number, lat = 33): Station => ({
+    id, code: 1, name: id, stream: 'נחל', region: 'north', lat, lng: 35.6, approxLocation: true,
+    sampleCount: 1, firstSample: d, latest: { d, v: { Fcoli } }, fcoliMonthly: null,
+  });
+  const now = new Date('2026-11-25T12:00:00Z');
+  const rate = (s: Station) => ({ station: s, assessment: assess(s.latest), ageDays: ageInDays(s.latest.d, now), old: false });
+
+  it('never suggests a station whose data is stale', () => {
+    const from = station('bad', '2026-11-20', 5000);
+    const staleSafe = station('stale', '2024-06-01', 20, 33.01); // ~2.5 years old: not "old", but stale
+    const recentSafe = station('recent', '2026-10-01', 20, 33.1);
+    expect(nearestSafe(from, [rate(staleSafe)])).toBeNull();
+    expect(nearestSafe(from, [rate(staleSafe), rate(recentSafe)])?.r.station.id).toBe('recent');
+  });
 });
 
 describe('models', () => {
@@ -85,6 +112,11 @@ describe('models', () => {
     expect(f!.points[0].value).toBeLessThan(5000);
     expect(f!.points[3].value).toBeLessThan(f!.points[0].value);
     expect(f!.points[3].value).toBeGreaterThan(300);
+  });
+
+  it('forecast starts on the Israeli calendar day', () => {
+    const f = forecastFcoli({ fcoliMonthly: null, latest: { d: '2026-11-20', v: { Fcoli: 100 } } }, new Date('2026-11-25T23:00:00Z'));
+    expect(f!.points[0].date).toBe('2026-11-26');
   });
 
   it('Lotka-Volterra stays positive and oscillates', () => {

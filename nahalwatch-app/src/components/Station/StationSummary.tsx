@@ -72,7 +72,7 @@ export default function StationSummary({
         </span>
       </div>
 
-      {forecast && <ForecastStrip forecast={forecast} compact />}
+      {forecast && <ForecastStrip forecast={forecast} status={a.status} compact />}
 
       {alt && (
         <button
@@ -86,6 +86,7 @@ export default function StationSummary({
             <div className="truncate text-fg">
               {alt.r.station.stream} · {alt.r.station.name} — {fmt(Math.round(alt.km))} ק״מ בקו אוויר
             </div>
+            <div className="text-xs text-muted">נדגמה {ageLabel(alt.r.station.latest.d)}</div>
           </div>
           <StatusBadge status="safe" />
         </button>

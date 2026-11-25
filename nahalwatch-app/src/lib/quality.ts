@@ -16,6 +16,7 @@
  * but never change the color. Every limit lives in RULES.
  */
 import { paramInfo } from './params';
+import { DAY_MS, dayValue, israelDay } from './time';
 import type { Sample } from './types';
 
 export type Status = 'safe' | 'caution' | 'danger' | 'unknown';
@@ -173,9 +174,20 @@ export const STATUS_LABEL: Record<Status, string> = {
   unknown: 'אין נתונים',
 };
 
-/** Whole days between a sample and now. */
+/** Severity of one reading against its official rule ('ok' when the parameter has no rule). */
+export function severityOf(key: string, value: number): Severity {
+  const rule = RULES.find((r) => r.key === key);
+  return rule ? evaluate(rule, value).severity : 'ok';
+}
+
+/** The official fecal-coliform rule (amber / red limits), for charts and the forecast. */
+export const FCOLI_RULE = RULES.find((r) => r.key === 'Fcoli')!;
+
+export const STATUS_RANK: Record<Status, number> = { unknown: 0, safe: 0, caution: 1, danger: 2 };
+
+/** Whole calendar days (Israel time) between a sample day and now. */
 export function ageInDays(isoDay: string, now: Date = new Date()): number {
-  return Math.floor((now.getTime() - new Date(`${isoDay}T00:00:00Z`).getTime()) / 86400000);
+  return Math.round((dayValue(israelDay(now)) - dayValue(isoDay)) / DAY_MS);
 }
 
 export function ageLabel(isoDay: string, now: Date = new Date()): string {

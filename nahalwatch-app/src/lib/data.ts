@@ -3,7 +3,7 @@
  * the bundle so the map renders without a round-trip; each station's full
  * history is fetched on demand from /data/series/<id>.json.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import stationsJson from '../../public/data/stations.json';
 import metaJson from '../../public/data/meta.json';
 import type { DataMeta, Region, Sample, Station } from './types';
@@ -44,20 +44,24 @@ export function loadSeries(id: string): Promise<Sample[]> {
   return seriesCache.get(id)!;
 }
 
+/** A station's full history. `error` is set when it can't be loaded (e.g. offline); `retry` tries again. */
 export function useSeries(id: string | null) {
-  const [state, setState] = useState<{ id: string | null; data: Sample[] | null; error: string | null }>({
-    id: null, data: null, error: null,
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState<{ key: string | null; data: Sample[] | null; error: string | null }>({
+    key: null, data: null, error: null,
   });
+  const key = id ? `${id}#${attempt}` : null;
   useEffect(() => {
-    if (!id) return;
+    if (!id || !key) return;
     let alive = true;
     loadSeries(id)
-      .then((data) => alive && setState({ id, data, error: null }))
-      .catch((e: Error) => alive && setState({ id, data: null, error: e.message }));
+      .then((data) => alive && setState({ key, data, error: null }))
+      .catch((e: Error) => alive && setState({ key, data: null, error: e.message || 'load failed' }));
     return () => { alive = false; };
-  }, [id]);
-  const current = state.id === id;
-  return { data: current ? state.data : null, error: current ? state.error : null, loading: !!id && !current };
+  }, [id, key]);
+  const retry = useCallback(() => setAttempt((a) => a + 1), []);
+  const current = state.key === key;
+  return { data: current ? state.data : null, error: current ? state.error : null, loading: !!id && !current, retry };
 }
 
 /** Great-circle distance in km. */

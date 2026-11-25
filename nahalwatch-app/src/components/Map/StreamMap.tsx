@@ -36,6 +36,9 @@ const confluenceIcon = L.divIcon({
   iconAnchor: [-10, 6],
 });
 
+// "You are here" dot; colors come from the theme tokens (.nw-userpos in globals.css).
+const userPosIcon = L.divIcon({ className: '', html: '<div class="nw-userpos"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+
 export type FlyTarget =
   | { kind: 'bounds'; bounds: [[number, number], [number, number]] }
   | { kind: 'point'; lat: number; lng: number; zoom?: number };
@@ -102,7 +105,7 @@ export default function StreamMap({
       {userPos && (
         <Marker
           position={[userPos.lat, userPos.lng]}
-          icon={L.divIcon({ className: '', html: '<div style="width:16px;height:16px;border-radius:99px;background:#1c8fd0;border:3px solid #fff;box-shadow:0 0 0 6px rgb(28 143 208 / .25)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] })}
+          icon={userPosIcon}
           interactive={false}
         />
       )}

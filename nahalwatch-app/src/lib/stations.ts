@@ -1,6 +1,6 @@
 /** Derived, app-wide views over the station index (computed once per load). */
 import { STATIONS, distanceKm } from './data';
-import { ageInDays, assess, type Assessment, type Status } from './quality';
+import { STALE_DAYS, ageInDays, assess, type Assessment, type Status } from './quality';
 import type { Station } from './types';
 
 /** Stations not sampled for this long are dimmed on the map and hidden by default. */
@@ -20,11 +20,14 @@ export function rateAll(now: Date = new Date()): RatedStation[] {
   });
 }
 
-/** Closest station with green status and reasonably recent data — the "safe alternative". */
+/**
+ * Closest station with green status and current data — the "safe alternative".
+ * Only samples newer than STALE_DAYS count: we don't send people to a stream on old data.
+ */
 export function nearestSafe(from: Station, rated: RatedStation[], maxKm = 40) {
   let best: { r: RatedStation; km: number } | null = null;
   for (const r of rated) {
-    if (r.station.id === from.id || r.old || r.assessment.status !== 'safe') continue;
+    if (r.station.id === from.id || r.ageDays > STALE_DAYS || r.assessment.status !== 'safe') continue;
     const km = distanceKm(from, r.station);
     if (km <= maxKm && (!best || km < best.km)) best = { r, km };
   }

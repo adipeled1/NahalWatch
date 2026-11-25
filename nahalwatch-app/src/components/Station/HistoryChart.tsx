@@ -58,12 +58,14 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
     cutoff.setFullYear(cutoff.getFullYear() - years);
     return samples
       .filter((s) => s.v[key] != null && new Date(s.d) >= cutoff)
-      .map((s) => ({ t: new Date(s.d).getTime(), v: log ? Math.max(1, s.v[key]) : s.v[key] }));
+      // `v` is what's plotted (a log axis can't show 0, so it's clamped to 1); `raw` is the measured
+      // value, used for the stats under the chart.
+      .map((s) => ({ t: new Date(s.d).getTime(), v: log ? Math.max(1, s.v[key]) : s.v[key], raw: s.v[key] }));
   }, [samples, key, range, log, last]);
 
   if (!key) return <p className="p-4 text-sm text-muted">אין מספיק נתונים לגרף.</p>;
 
-  const values = data.map((d) => d.v);
+  const values = data.map((d) => d.raw);
   const avg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
   const max = values.length ? Math.max(...values) : 0;
 
@@ -121,7 +123,7 @@ export function HistoryChart({ samples, expert }: { samples: Sample[]; expert: b
             <Tooltip
               contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, direction: 'rtl' }}
               labelFormatter={(t) => dateFmt.format(new Date(Number(t)))}
-              formatter={(v) => [`${fmt(Number(v))} ${info.unit}`, info.he]}
+              formatter={(v, _name, item) => [`${fmt(Number(item?.payload?.raw ?? v))} ${info.unit}`, info.he]}
             />
             {rule?.dangerAbove != null && (
               <ReferenceLine y={rule.dangerAbove} stroke="var(--danger)" strokeDasharray="5 4" label={{ value: `אזהרה ${fmt(rule.dangerAbove)}`, fill: 'var(--danger)', fontSize: 11, position: 'insideTopLeft' }} />

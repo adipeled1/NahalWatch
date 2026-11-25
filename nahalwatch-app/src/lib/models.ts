@@ -12,6 +12,8 @@
  *    dP/dt = δ·B·P − γ·P      (P = protozoan grazers, predator)
  *    Integrated with RK4 for the interactive "Models lab".
  */
+import { severityOf } from './quality';
+import { DAY_MS as DAY, dayValue, israelDay } from './time';
 import type { Sample, Station } from './types';
 
 export function logistic(t: number, n0: number, r: number, k: number): number {
@@ -25,7 +27,6 @@ export interface ForecastPoint {
   kind: 'measured' | 'forecast';
 }
 
-const DAY = 86400000;
 const toIso = (t: number) => new Date(t).toISOString().slice(0, 10);
 
 /** Seasonal carrying capacity K for a date: the station's monthly median, falling back to the yearly median. */
@@ -51,8 +52,9 @@ export function forecastFcoli(
 ): { points: ForecastPoint[]; k: number; n0: number; fromDate: string } | null {
   const n0 = station.latest.v.Fcoli;
   if (n0 == null) return null;
-  const start = new Date(`${station.latest.d}T00:00:00Z`).getTime();
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const start = dayValue(station.latest.d);
+  // "Today" is the Israeli calendar day (UTC is 2–3 hours behind just after midnight).
+  const today = dayValue(israelDay(now));
   const points: ForecastPoint[] = [];
   let k = 0;
   for (let i = 0; i <= days; i++) {
@@ -110,7 +112,8 @@ export function logisticSeries(n0: number, r: number, k: number, days: number) {
  */
 export function backtestSeasonal(samples: Sample[]) {
   const withF = samples.filter((s) => s.v.Fcoli != null);
-  const cls = (v: number) => (v > 400 ? 2 : v > 200 ? 1 : 0);
+  // Traffic-light class from the official rule in RULES (never a local copy of the limits).
+  const cls = (v: number) => severityOf('Fcoli', v);
   const pairs: { date: string; measured: number; predicted: number }[] = [];
   for (const s of withF) {
     const month = s.d.slice(5, 7);

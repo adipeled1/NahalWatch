@@ -7,8 +7,10 @@ import { forecastFcoli } from '@/lib/models';
 import { GROUP_LABEL, PARAMS, paramInfo, type ParamGroup } from '@/lib/params';
 import { STALE_DAYS, ageInDays, ageLabel, assess, exceedances, fmt, type Assessment } from '@/lib/quality';
 import { nearestSafe, rateAll } from '@/lib/stations';
+import { useNow } from '@/lib/useNow';
 import type { Station } from '@/lib/types';
 import { Card, CardHeader } from '@/components/ui/Card';
+import { LoadError } from '@/components/ui/LoadError';
 import { FindingList, StatusBadge, statusTone } from '@/components/ui/Status';
 import { ForecastStrip } from './ForecastStrip';
 import { HistoryChart } from './HistoryChart';
@@ -21,12 +23,18 @@ const TILE_KEYS = ['Fcoli', 'Ecoli', 'Fstrp', 'BODt', 'CODt', 'NH4', 'NO3', 'Pto
 export default function StationDetail({ id }: { id: string }) {
   const station = STATION_BY_ID[id];
   const a = useMemo(() => assess(station.latest), [station]);
-  const { data: series, loading } = useSeries(id);
+  const { data: series, error: seriesError, retry } = useSeries(id);
   const tone = statusTone(a.status);
   const issues = exceedances(a);
-  const age = ageInDays(station.latest.d);
-  const forecast = forecastFcoli(station);
-  const alt = useMemo(() => (a.status === 'safe' ? null : nearestSafe(station, rateAll())), [a.status, station]);
+  // The page is pre-rendered at build time: everything that depends on today's date waits for the
+  // browser's clock (null until then), so the HTML and the first client render match.
+  const now = useNow();
+  const age = now ? ageInDays(station.latest.d, now) : 0;
+  const forecast = useMemo(() => (now ? forecastFcoli(station, now) : null), [station, now]);
+  const alt = useMemo(
+    () => (now && a.status !== 'safe' ? nearestSafe(station, rateAll(now)) : null),
+    [a.status, station, now],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -63,7 +71,7 @@ export default function StationDetail({ id }: { id: string }) {
             )}
             <div className={`flex items-center gap-2 text-sm ${age > STALE_DAYS ? 'text-caution' : 'text-muted'}`}>
               <CalendarClock className="size-4 shrink-0" aria-hidden />
-              דגימה אחרונה: {dateFmt.format(new Date(station.latest.d))} ({ageLabel(station.latest.d)})
+              דגימה אחרונה: {dateFmt.format(new Date(station.latest.d))}{now && ` (${ageLabel(station.latest.d, now)})`}
               {station.latest.lab && <span className="text-faint">· מעבדת {station.latest.lab}</span>}
             </div>
             {age > STALE_DAYS && (
@@ -103,7 +111,7 @@ export default function StationDetail({ id }: { id: string }) {
             <Card>
               <CardHeader icon={<LineIcon className="size-4" />} title="תחזית ל-3 הימים הקרובים" subtitle="מודל גידול לוגיסטי — מהדגימה האחרונה אל הרמה העונתית האופיינית לתחנה" />
               <div className="px-4 pb-4">
-                <ForecastStrip forecast={forecast} />
+                <ForecastStrip forecast={forecast} status={a.status} />
                 <p className="mt-2 text-xs leading-relaxed text-muted">
                   N₀ = <span className="num">{fmt(forecast.n0)}</span> ({forecast.fromDate}), K = חציון חודשי היסטורי ={' '}
                   <span className="num">{fmt(forecast.k)}</span>, r = 0.35 ליום. <Link href="/models" className="font-semibold text-water underline">איך זה עובד?</Link>
@@ -117,7 +125,9 @@ export default function StationDetail({ id }: { id: string }) {
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-safe">חלופה בטוחה קרובה</div>
                 <div className="truncate text-sm">{alt.r.station.stream} · {alt.r.station.name}</div>
-                <div className="text-xs text-muted">{fmt(Math.round(alt.km))} ק״מ בקו אוויר</div>
+                <div className="text-xs text-muted">
+                  {fmt(Math.round(alt.km))} ק״מ בקו אוויר · נדגמה {now && ageLabel(alt.r.station.latest.d, now)}
+                </div>
               </div>
               <StatusBadge status="safe" />
             </Link>
@@ -130,7 +140,9 @@ export default function StationDetail({ id }: { id: string }) {
       <Card>
         <CardHeader icon={<LineIcon className="size-4" />} title="היסטוריית מדידות" subtitle={`${station.sampleCount} דגימות · קווי הסף מסומנים בגרף`} />
         <div className="px-2 pb-4 lg:px-4">
-          {loading || !series ? (
+          {seriesError ? (
+            <LoadError onRetry={retry} />
+          ) : !series ? (
             <div className="grid h-64 place-items-center text-sm text-muted">טוען נתונים…</div>
           ) : (
             <HistoryChart samples={series} expert />

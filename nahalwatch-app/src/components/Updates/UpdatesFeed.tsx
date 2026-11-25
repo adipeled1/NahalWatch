@@ -5,6 +5,7 @@ import { ChevronLeft, LineChart } from 'lucide-react';
 import { REGION_LABEL } from '@/lib/data';
 import { ageLabel, exceedances, type Status } from '@/lib/quality';
 import { countByStatus, rateAll, type RatedStation } from '@/lib/stations';
+import { useNow } from '@/lib/useNow';
 import type { Region } from '@/lib/types';
 import { Card, Chip, PageHeader } from '@/components/ui/Card';
 import { FindingList, statusTone } from '@/components/ui/Status';
@@ -17,7 +18,10 @@ const TITLE: Record<Status, string> = {
 };
 
 export default function UpdatesFeed() {
-  const rated = useMemo(() => rateAll(), []);
+  // "Recent" and the ages depend on today's date, so the feed waits for the browser's clock
+  // (the page is pre-rendered at build time; see useNow).
+  const now = useNow();
+  const rated = useMemo(() => (now ? rateAll(now) : []), [now]);
   const [onlyAlerts, setOnlyAlerts] = useState(false);
   const [region, setRegion] = useState<Region | 'all'>('north');
 
@@ -72,14 +76,15 @@ export default function UpdatesFeed() {
       </div>
 
       <ol className="flex flex-col gap-3">
-        {feed.length === 0 && <li className="py-10 text-center text-muted">אין עדכונים להצגה.</li>}
-        {feed.map((r) => <FeedItem key={r.station.id} r={r} />)}
+        {!now && <li className="py-10 text-center text-muted">טוען עדכונים…</li>}
+        {now && feed.length === 0 && <li className="py-10 text-center text-muted">אין עדכונים להצגה.</li>}
+        {now && feed.map((r) => <FeedItem key={r.station.id} r={r} now={now} />)}
       </ol>
     </div>
   );
 }
 
-function FeedItem({ r }: { r: RatedStation }) {
+function FeedItem({ r, now }: { r: RatedStation; now: Date }) {
   const s = r.assessment.status;
   const tone = statusTone(s);
   const issues = exceedances(r.assessment).filter((f) => f.severity === 'danger' || s !== 'danger');
@@ -91,7 +96,7 @@ function FeedItem({ r }: { r: RatedStation }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
               <h3 className={`font-bold ${tone.text}`}>{TITLE[s]} — {r.station.stream}</h3>
-              <span className="shrink-0 text-xs text-faint">{ageLabel(r.station.latest.d)}</span>
+              <span className="shrink-0 text-xs text-faint">{ageLabel(r.station.latest.d, now)}</span>
             </div>
             <p className="text-sm text-muted">{r.station.name} · {r.assessment.familyAnswer}</p>
             {issues.length > 0 && <div className="mt-2"><FindingList findings={issues.slice(0, 2)} compact /></div>}

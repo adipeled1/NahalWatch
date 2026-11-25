@@ -5,6 +5,7 @@ import { ChevronLeft, Search } from 'lucide-react';
 import { REGION_LABEL } from '@/lib/data';
 import { ageLabel, fmt, type Status } from '@/lib/quality';
 import { rateAll, type RatedStation } from '@/lib/stations';
+import { useNow } from '@/lib/useNow';
 import type { Region } from '@/lib/types';
 import { Card, Chip, PageHeader } from '@/components/ui/Card';
 import { StatusBadge, StatusDot } from '@/components/ui/Status';
@@ -12,12 +13,16 @@ import { StatusBadge, StatusDot } from '@/components/ui/Status';
 const RANK: Record<Status, number> = { safe: 0, caution: 1, danger: 2, unknown: 3 };
 
 export default function StreamsList() {
-  const rated = useMemo(() => rateAll(), []);
+  // Ages and the "old station" filter depend on today's date, so the list waits for the browser's clock
+  // (the page is pre-rendered at build time; see useNow).
+  const now = useNow();
+  const rated = useMemo(() => (now ? rateAll(now) : null), [now]);
   const [region, setRegion] = useState<Region | 'all'>('north');
   const [q, setQ] = useState('');
   const [showOld, setShowOld] = useState(false);
 
   const groups = useMemo(() => {
+    if (!rated || !now) return null;
     const map = new Map<string, RatedStation[]>();
     for (const r of rated) {
       if (region !== 'all' && r.station.region !== region) continue;
@@ -34,7 +39,7 @@ export default function StreamsList() {
         best: list.reduce((b, r) => (RANK[r.assessment.status] < RANK[b] ? r.assessment.status : b), 'unknown' as Status),
       }))
       .sort((a, b) => RANK[a.best] - RANK[b.best] || a.stream.localeCompare(b.stream, 'he'));
-  }, [rated, region, q, showOld]);
+  }, [rated, now, region, q, showOld]);
 
   return (
     <div>
@@ -60,10 +65,11 @@ export default function StreamsList() {
         </div>
       </div>
 
-      {groups.length === 0 && <p className="py-10 text-center text-muted">לא נמצאו תחנות.</p>}
+      {!groups && <p className="py-10 text-center text-muted">טוען תחנות…</p>}
+      {groups?.length === 0 && <p className="py-10 text-center text-muted">לא נמצאו תחנות.</p>}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {groups.map((g) => (
+        {groups?.map((g) => (
           <Card key={g.stream}>
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <h2 className="text-lg font-extrabold">{g.stream}</h2>
@@ -72,7 +78,7 @@ export default function StreamsList() {
                 <StatusBadge status={g.best} />
               </div>
             </div>
-            <ul className="divide-y divide-border">{g.list.map((r) => <Row key={r.station.id} r={r} />)}</ul>
+            <ul className="divide-y divide-border">{g.list.map((r) => <Row key={r.station.id} r={r} now={now!} />)}</ul>
           </Card>
         ))}
       </div>
@@ -80,7 +86,7 @@ export default function StreamsList() {
   );
 }
 
-function Row({ r, showStream }: { r: RatedStation; showStream?: boolean }) {
+function Row({ r, now, showStream }: { r: RatedStation; now: Date; showStream?: boolean }) {
   const f = r.station.latest.v.Fcoli;
   return (
     <li>
@@ -88,7 +94,7 @@ function Row({ r, showStream }: { r: RatedStation; showStream?: boolean }) {
         <StatusDot status={r.assessment.status} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">{showStream ? `${r.station.stream} · ` : ''}{r.station.name}</div>
-          <div className={`text-xs ${r.old ? 'text-caution' : 'text-faint'}`}>{ageLabel(r.station.latest.d)}</div>
+          <div className={`text-xs ${r.old ? 'text-caution' : 'text-faint'}`}>{ageLabel(r.station.latest.d, now)}</div>
         </div>
         {f != null && (
           <div className="text-end text-xs text-muted">
